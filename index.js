@@ -20,6 +20,10 @@ app.get("/", (req, res) => {
     res.send("Working root");
 })
 
+app.get("/Home", (req, res) => {
+    res.render("Home.ejs");
+})
+
 app.listen(3000, () => {
     console.log("app is listening");
 })
