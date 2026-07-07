@@ -1,0 +1,24 @@
+{
+  "name": "pratik-portfolio",
+  "version": "1.0.0",
+  "description": "portfolio website for a photographer , where user can see his work and book a shoot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeetKumbhar/Pratik-Portfolio.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JeetKumbhar/Pratik-Portfolio/issues"
+  },
+  "homepage": "https://github.com/JeetKumbhar/Pratik-Portfolio#readme",
+  "dependencies": {
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.7.4"
+  }
+}
