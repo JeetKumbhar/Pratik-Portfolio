@@ -8,6 +8,7 @@
 @import './portfolio.css';
 @import './services.css';
 @import './contact.css';
+@import './booking.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
