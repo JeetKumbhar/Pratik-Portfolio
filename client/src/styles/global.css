@@ -6,6 +6,7 @@
 @import './home.css';
 @import './about.css';
 @import './portfolio.css';
+@import './services.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

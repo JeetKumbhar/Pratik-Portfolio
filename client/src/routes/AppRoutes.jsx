@@ -5,6 +5,7 @@ import Home from '../pages/Home/Home';
 import NotFound from '../pages/NotFound/NotFound';
 import About from '../pages/About/About';
 import Portfolio from '../pages/Portfolio/Portfolio';
+import Services from '../pages/Services/Services';
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -24,7 +25,7 @@ export default function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="portfolio" element={<Portfolio />} />
-        <Route path="services" element={<Placeholder title="Services" />} />
+        <Route path="services" element={<Services />} />
         <Route path="booking" element={<Placeholder title="Book a Shoot" />} />
         <Route path="blog" element={<Placeholder title="Blog" />} />
         <Route path="contact" element={<Placeholder title="Contact" />} />
