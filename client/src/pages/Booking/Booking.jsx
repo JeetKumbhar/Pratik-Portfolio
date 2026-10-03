@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { BookingProvider } from '../../context/BookingContext';
 import useBooking from '../../hooks/useBooking';
 import BookingProgress from '../../components/booking/BookingProgress';
@@ -20,7 +20,7 @@ const HEADERS = {
 };
 
 function BookingFlow() {
-  const { step, back, update, submission } = useBooking();
+  const { step, back, update, submission, goTo, validateAll, notice } = useBooking();
   const [params] = useSearchParams();
 
   // Pre-fill from Services page links: /booking?service=wedding&package=standard
@@ -32,6 +32,15 @@ function BookingFlow() {
     if (pkg) patch.packageId = pkg;
     if (Object.keys(patch).length) update(patch);
   }, [params, update]);
+
+  // Guard: if a later step is open (e.g. restored draft) but an earlier one is incomplete, go back to it
+  useEffect(() => {
+    if (submission || step <= 1) return;
+    const { firstInvalidStep, errors } = validateAll();
+    if (firstInvalidStep && firstInvalidStep < step) {
+      goTo(firstInvalidStep, Object.values(errors[firstInvalidStep]));
+    }
+  }, [step, submission, validateAll, goTo]);
 
   if (submission) {
     return <section className="home-section"><div className="container"><BookingSuccess /></div></section>;
@@ -57,6 +66,16 @@ function BookingFlow() {
           </header>
 
           <BookingProgress />
+
+          {notice.length > 0 && (
+            <div className="form-alert form-alert--list" role="alert">
+              <AlertCircle size={18} />
+              <div>
+                <strong>Please fix the following to continue:</strong>
+                <ul>{notice.map((m) => <li key={m}>{m}</li>)}</ul>
+              </div>
+            </div>
+          )}
 
           {/* key restarts the fade-in on each step */}
           <div key={step} className="booking__step" aria-label={stepName}>

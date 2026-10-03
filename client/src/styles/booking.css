@@ -165,3 +165,9 @@
 .success__card dd { margin: 0; text-align: right; }
 .success__ref { font-family: ui-monospace, 'SF Mono', Consolas, monospace; letter-spacing: 0.1em; color: var(--gold); }
 .success__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+
+/* ===== Validation notice ===== */
+.form-alert--list { align-items: flex-start; }
+.form-alert--list svg { flex-shrink: 0; margin-top: 2px; }
+.form-alert--list strong { font-weight: 500; }
+.form-alert--list ul { margin: 6px 0 0; padding-left: 18px; list-style: disc; }

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { getPackages } from '../services/packageService';
-import { CUSTOM_PACKAGE, fromKey } from '../components/booking/bookingData';
+import { CUSTOM_PACKAGE, LOCATIONS, SHOOT_TYPES, fromKey } from '../components/booking/bookingData';
+import { validateBooking } from '../utils/validation';
 
 export const BookingContext = createContext(null);
 
@@ -45,6 +46,7 @@ export function BookingProvider({ children }) {
   const [submission, setSubmission] = useState(null); // { reference } once submitted
   const [packages, setPackages] = useState([]);
   const [packagesStatus, setPackagesStatus] = useState('loading');
+  const [notice, setNotice] = useState([]); // messages shown when we send someone back to fix something
 
   useEffect(() => {
     let cancelled = false;
@@ -63,24 +65,40 @@ export function BookingProvider({ children }) {
   }, [state, submission]);
 
   const update = useCallback((patch) => dispatch({ type: 'UPDATE', patch }), []);
-  const goTo = useCallback((step) => { dispatch({ type: 'GOTO', step }); window.scrollTo({ top: 0, behavior: 'smooth' }); }, []);
+  const goTo = useCallback((step, messages = []) => {
+    dispatch({ type: 'GOTO', step });
+    setNotice(messages);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   const next = useCallback(() => goTo(state.step + 1), [goTo, state.step]);
   const back = useCallback(() => goTo(state.step - 1), [goTo, state.step]);
-  const reset = useCallback(() => { dispatch({ type: 'RESET' }); setSubmission(null); }, []);
+  const reset = useCallback(() => { dispatch({ type: 'RESET' }); setSubmission(null); setNotice([]); }, []);
 
   const selectedPackage = useMemo(() => {
     if (state.values.packageId === CUSTOM_PACKAGE.id) return CUSTOM_PACKAGE;
     return packages.find((p) => p.id === state.values.packageId) ?? null;
   }, [packages, state.values.packageId]);
 
+  /** Full check of every step. Used before submit and when a saved draft is restored. */
+  const validateAll = useCallback(
+    () => validateBooking(state.values, {
+      shootTypes: SHOOT_TYPES.map((s) => s.id),
+      locations: LOCATIONS.map((l) => l.id),
+      // only check the package id against the list once packages have loaded
+      packageIds: packagesStatus === 'ready' ? [...packages.map((p) => p.id), CUSTOM_PACKAGE.id] : undefined,
+    }),
+    [state.values, packages, packagesStatus]
+  );
+
   const value = useMemo(
     () => ({
       values: state.values, step: state.step, maxStep: state.maxStep,
       update, goTo, next, back, reset,
       packages, packagesStatus, selectedPackage,
+      validateAll, notice,
       submission, setSubmission,
     }),
-    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, submission]
+    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, validateAll, notice, submission]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

@@ -6,7 +6,7 @@ import { submitBooking } from '../../services/bookingService';
 import { LOCATIONS, SHOOT_TYPES, formatDate, formatTime, labelOf, money } from './bookingData';
 
 export default function BookingReview() {
-  const { values, goTo, back, selectedPackage, setSubmission } = useBooking();
+  const { values, goTo, back, selectedPackage, setSubmission, validateAll } = useBooking();
   const [state, setState] = useState('idle'); // idle | submitting | error
 
   const rows = [
@@ -21,6 +21,13 @@ export default function BookingReview() {
   ];
 
   const onSubmit = async () => {
+    // Final gate: never send incomplete data. If anything is wrong, jump to that step.
+    const { isValid, errors, firstInvalidStep } = validateAll();
+    if (!isValid) {
+      goTo(firstInvalidStep, Object.values(errors[firstInvalidStep]));
+      return;
+    }
+
     setState('submitting');
     try {
       const result = await submitBooking({
