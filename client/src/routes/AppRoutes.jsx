@@ -3,6 +3,7 @@ import PublicLayout from '../layouts/PublicLayout';
 import AdminLayout from '../layouts/AdminLayout';
 import Home from '../pages/Home/Home';
 import NotFound from '../pages/NotFound/NotFound';
+import About from '../pages/About/About';
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -29,6 +30,7 @@ export default function AppRoutes() {
         <Route path="gallery/:id" element={<Placeholder title="Client Gallery" />} />
         <Route path="login" element={<Placeholder title="Login" />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="about" element={<About />} />
       </Route>
 
       {/* ---------- Admin: Sidebar + Header + page ---------- */}
@@ -41,6 +43,7 @@ export default function AppRoutes() {
         <Route path="clients" element={<Placeholder title="Clients" />} />
         <Route path="messages" element={<Placeholder title="Messages" />} />
         <Route path="*" element={<NotFound />} />
+        
       </Route>
     </Routes>
   );

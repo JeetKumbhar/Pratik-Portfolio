@@ -1,0 +1,89 @@
+/* ===== About hero ===== */
+.about-hero {
+  position: relative; overflow: hidden; background: var(--bg);
+  margin-top: calc(var(--navbar-h) * -1); padding-top: var(--navbar-h);
+  min-height: max(680px, 100svh); display: flex;
+}
+.about-hero__media { position: absolute; inset: 0; transform-origin: 70% 40%; will-change: transform; }
+.about-hero__img, .about-hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 72% center; }
+.about-hero__img {
+  background-image: var(--about-img), radial-gradient(ellipse at 75% 30%, #4a3216 0%, #1a130a 45%, #0a0a0a 75%);
+  background-size: cover; background-position: 72% center;
+}
+.about-hero__shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(0deg, var(--bg) 0%, rgba(10, 10, 10, 0) 40%),
+    linear-gradient(90deg, rgba(10, 10, 10, 0.92) 0%, rgba(10, 10, 10, 0.55) 48%, rgba(10, 10, 10, 0.05) 100%);
+}
+.about-hero__fade { position: absolute; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; }
+.about-hero__inner { position: relative; display: flex; align-items: flex-end; padding-block: 48px; }
+.about-hero__content { max-width: 560px; display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
+.about-hero__eyebrow { font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+.about-hero__title { font-size: clamp(36px, 6vw, 60px); line-height: 1.05; font-weight: 500; text-transform: uppercase; letter-spacing: 0.005em; }
+.about-hero__text { display: flex; flex-direction: column; gap: 14px; color: rgba(242, 240, 235, 0.85); font-size: 16px; }
+.about-hero__stats { margin: 6px 0 0; display: grid; grid-template-columns: 1fr; gap: 0; width: 100%; border-top: 1px solid var(--border); }
+.about-hero__stat { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); color: var(--gold); }
+.about-hero__stat dt { font-size: 22px; font-weight: 500; color: var(--text); line-height: 1.2; }
+.about-hero__stat dd { margin: 0; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+.about-hero__sign { display: flex; flex-direction: column; gap: 2px; }
+.about-hero__script { font-family: var(--font-script); font-size: 40px; line-height: 1; }
+.about-hero__name { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.about-hero__scroll { display: none; }
+
+@media (min-width: 900px) {
+  .about-hero__inner { align-items: center; }
+  .about-hero__stats { grid-template-columns: repeat(3, auto); justify-content: start; border-top: 1px solid var(--border); border-bottom: 0; }
+  .about-hero__stat { border-bottom: 0; padding: 18px 28px 0 0; margin-right: 28px; border-right: 1px solid var(--border); }
+  .about-hero__stat:last-child { border-right: 0; margin-right: 0; }
+  .about-hero__scroll {
+    display: flex; position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
+    flex-direction: column; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted);
+  }
+}
+/* Mobile: photographer on top, text lower */
+@media (max-width: 899px) {
+  .about-hero { min-height: 0; }
+  .about-hero__inner { padding-top: 46svh; padding-bottom: 40px; }
+  .about-hero__img { object-position: 70% top; background-position: 70% top; }
+  .about-hero__shade {
+    background: linear-gradient(0deg, var(--bg) 0%, rgba(10, 10, 10, 0.92) 48%, rgba(10, 10, 10, 0.1) 100%);
+  }
+}
+
+/* ===== Story ===== */
+.story { display: grid; gap: 40px; align-items: center; }
+.story__photo { position: relative; overflow: hidden; aspect-ratio: 4 / 5; max-height: 600px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: #1a1410; }
+.story__img {
+  position: absolute; inset: -8% 0; background-size: cover; background-position: center;
+  background-image: var(--story-img), linear-gradient(160deg, #4a3a2a, #0e0b08);
+}
+.story__body { display: flex; flex-direction: column; gap: 24px; }
+.story__paras { display: flex; flex-direction: column; gap: 18px; color: var(--text-muted); font-size: 17px; }
+.story__quote { margin: 8px 0 0; padding-left: 20px; border-left: 2px solid var(--gold); font-family: var(--font-serif); font-size: 22px; line-height: 1.4; color: var(--text); }
+@media (min-width: 900px) { .story { grid-template-columns: 5fr 6fr; gap: 72px; } }
+
+/* ===== Experience ===== */
+.exp-stats { margin: 48px 0 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.exp-stat { margin: 0; padding: 24px 16px; text-align: center; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.exp-stat__value { font-family: var(--font-serif); font-size: clamp(36px, 6vw, 52px); color: var(--gold); line-height: 1.1; }
+.exp-stat__label { margin: 6px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+@media (min-width: 800px) { .exp-stats { grid-template-columns: repeat(4, 1fr); } }
+
+.timeline { margin: 56px auto 0; padding: 0; max-width: 720px; list-style: none; position: relative; }
+.timeline::before { content: ''; position: absolute; left: 5px; top: 8px; bottom: 8px; width: 1px; background: var(--border-strong); }
+.timeline__item { position: relative; display: grid; grid-template-columns: 1fr; gap: 4px; padding: 0 0 32px 32px; }
+.timeline__item:last-child { padding-bottom: 0; }
+.timeline__item::before { content: ''; position: absolute; left: 0; top: 7px; width: 11px; height: 11px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); }
+.timeline__year { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.timeline__title { font-size: 18px; font-weight: 500; }
+.timeline__text { color: var(--text-muted); margin-top: 2px; }
+@media (min-width: 700px) {
+  .timeline__item { grid-template-columns: 110px 1fr; gap: 24px; }
+  .timeline__year { padding-top: 3px; }
+}
+
+/* ===== Style ===== */
+.style-grid { margin-top: 48px; }
+@media (min-width: 640px) { .style-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .style-grid { grid-template-columns: repeat(4, 1fr); } }
