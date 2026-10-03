@@ -1,60 +1,69 @@
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { NavLink } from 'react-router-dom';
-import { Calendar, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Calendar, Camera, Menu } from 'lucide-react';
 import Button from '../common/Button';
-import { Logo } from './Navbar';
-import SocialLinks from './SocialLinks';
-import { NAV_LINKS, BOOKING_PATH } from '../../utils/constants';
+import MobileMenu from './MobileMenu';
+import { NAV_LINKS, BOOKING_PATH, SITE } from '../../utils/constants';
 import { cx } from '../../utils/helpers';
 
-export default function MobileMenu({ isOpen, onClose }) {
+export function Logo({ onClick }) {
+  return (
+    <Link to="/" className="logo" onClick={onClick} aria-label={`${SITE.name} ${SITE.tagline} – home`}>
+      <Camera size={34} strokeWidth={1.3} aria-hidden="true" />
+      <span className="logo__text">
+        <span className="logo__name">{SITE.name}</span>
+        <span className="logo__sub">{SITE.tagline}</span>
+      </span>
+    </Link>
+  );
+}
+
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { pathname } = useLocation();
+
   useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, onClose]);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-  if (!isOpen) return null;
+  // Close the mobile menu whenever the route changes
+  useEffect(() => setMenuOpen(false), [pathname]);
 
-  return createPortal(
-    <div className="mobile-menu">
-      <div className="mobile-menu__backdrop" onClick={onClose} />
-      <aside className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Menu">
-        <div className="mobile-menu__top">
-          <Logo onClick={onClose} />
-          <button type="button" className="mobile-menu__close" onClick={onClose} aria-label="Close menu">
-            <X size={28} />
-          </button>
-        </div>
+  return (
+    <>
+      <header className={cx('navbar', scrolled && 'navbar--scrolled')}>
+        <div className="container navbar__inner">
+          <Logo />
 
-        <nav className="mobile-menu__nav" aria-label="Mobile">
-          {NAV_LINKS.map(({ label, to }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={onClose}
-              className={({ isActive }) => cx('mobile-menu__link', isActive && 'is-active')}
-            >
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+          <nav className="navbar__links" aria-label="Primary">
+            {NAV_LINKS.map(({ label, to }) => (
+              <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => cx('navbar__link', isActive && 'is-active')}>
+                {label}
+              </NavLink>
+            ))}
+          </nav>
 
-        <div className="mobile-menu__footer">
-          <Button to={BOOKING_PATH} fullWidth icon={<Calendar size={16} />} onClick={onClose}>
+          <Button to={BOOKING_PATH} variant="outline" size="sm" className="navbar__cta" icon={<Calendar size={16} />}>
             Book a shoot
           </Button>
-          <SocialLinks />
+
+          <button
+            type="button"
+            className="navbar__toggle"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+          >
+            <Menu size={28} />
+          </button>
         </div>
-      </aside>
-    </div>,
-    document.body
+      </header>
+
+      <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+    </>
   );
 }
