@@ -22,10 +22,11 @@ export default function Testimonials() {
   return (
     <section className="home-section home-section--alt">
       <div className="container">
-        <SectionTitle eyebrow="Kind words" title="What clients say" align="center" serif />
+        <SectionTitle eyebrow="Kind words" title="What clients say" align="center" serif split />
 
         <div
           className="testimonial"
+          data-reveal
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onFocus={() => setPaused(true)}

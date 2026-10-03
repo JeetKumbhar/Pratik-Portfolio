@@ -31,7 +31,7 @@ export default function PricingSection() {
           title="Packages & Pricing"
           subtitle="Simple, transparent pricing for every need."
           align="center"
-          serif
+          serif split
         />
 
         {status === 'loading' && <div className="pricing__state"><Loader label="Loading packages" /></div>}
@@ -46,7 +46,7 @@ export default function PricingSection() {
         )}
 
         {status === 'ready' && (
-          <ul className="pricing__grid">
+          <ul className="pricing__grid" data-stagger>
             {packages.map((pkg) => (
               <li key={pkg.id}><PricingCard pkg={pkg} /></li>
             ))}

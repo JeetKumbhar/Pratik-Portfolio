@@ -10,9 +10,9 @@ export default function FAQ() {
   return (
     <section className="home-section">
       <div className="container faq">
-        <SectionTitle eyebrow="Good to know" title="Frequently asked questions" align="center" serif />
+        <SectionTitle eyebrow="Good to know" title="Frequently asked questions" align="center" serif split />
 
-        <div className="faq__list">
+        <div className="faq__list" data-stagger>
           {FAQS.map(({ q, a }, i) => {
             const open = openIndex === i;
             return (

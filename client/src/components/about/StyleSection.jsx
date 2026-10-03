@@ -12,7 +12,7 @@ export default function StyleSection() {
             title="How I see the world"
             subtitle="Four principles that shape every shoot."
             align="center"
-            serif
+            serif split
           />
         </div>
 

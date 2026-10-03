@@ -8,15 +8,17 @@ export default function AboutPreview() {
   return (
     <section className="home-section">
       <div className="container about-preview">
+        <div className="about-preview__frame" data-image-reveal>
         <div
           className="about-preview__photo"
           role="img"
           aria-label="Alex Morgan holding a camera"
           style={{ backgroundImage: photoBg(IMAGES.about, 'linear-gradient(160deg, #2a2a2a, #0c0c0c)') }}
         />
+        </div>
 
-        <div className="about-preview__body">
-          <SectionTitle className="title--script" eyebrow="About me" title="Hi, I'm Alex Morgan" serif />
+        <div className="about-preview__body" data-reveal>
+          <SectionTitle className="title--script" eyebrow="About me" title="Hi, I'm Alex Morgan" serif split />
           <p>
             I'm a professional photographer with over 8 years of experience capturing real moments and emotions.
             For me, photography is more than just taking pictures. It's about preserving memories that last a lifetime.

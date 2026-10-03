@@ -1,3 +1,5 @@
+
+
 import { ChevronRight } from 'lucide-react';
 import SectionTitle from '../common/SectionTitle';
 import Card from '../common/Card';
@@ -13,10 +15,10 @@ export default function ServicesPreview() {
           title="Photography & Services"
           subtitle="Tailored photography services to capture your most important moments."
           align="center"
-          serif
+          serif split
         />
 
-        <ul className="services-grid">
+        <ul className="services-grid" data-stagger>
           {SERVICES.map(({ title, icon: Icon, text }) => (
             <li key={title}>
               <Card padding="lg" className="service-card">
@@ -28,7 +30,7 @@ export default function ServicesPreview() {
           ))}
         </ul>
 
-        <div className="center-row">
+        <div className="center-row" data-reveal>
           <Button to="/services" variant="outline" iconRight={<ChevronRight size={16} />}>View services & pricing</Button>
         </div>
       </div>

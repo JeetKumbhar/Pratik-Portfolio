@@ -1,0 +1,36 @@
+/* =====================================================================
+   Motion styles. Import in global.css (after components/home/etc, before or after responsive.css):
+     @import './motion.css';
+   ===================================================================== */
+
+/* ----- Split-text word masks ----- */
+.split__word {
+  display: inline-block; overflow: hidden; vertical-align: top;
+  /* padding + negative margin keep descenders/ascenders from being clipped without changing the layout */
+  padding: 0.1em 0.05em 0.2em; margin: -0.1em -0.05em -0.2em;
+}
+.split__inner { display: inline-block; }
+.hero__script .split__word { overflow: visible; } /* the swashy script word must not be clipped */
+
+/* ----- Page-transition curtain ----- */
+.curtain {
+  position: fixed; inset: 0; z-index: 130; background: var(--bg); pointer-events: none; visibility: hidden;
+}
+.curtain::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--gold); }
+
+/* ----- Image-reveal frame (About preview on Home) ----- */
+.about-preview__frame { overflow: hidden; border-radius: var(--radius-lg); }
+
+/* ----- Small CSS micro-interactions ----- */
+.btn { transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+
+/* Hover lifts/zooms feel "stuck" after a tap on touch screens: only keep them where hover exists */
+@media (hover: none) {
+  .svc-card:hover, .service-card:hover { transform: none; }
+  .work-card:hover .work-card__img, .gallery-card:hover .gallery-card__img { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curtain { display: none; }
+}

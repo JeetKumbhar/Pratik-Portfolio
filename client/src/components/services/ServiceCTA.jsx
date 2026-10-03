@@ -6,7 +6,7 @@ export default function ServiceCTA() {
   return (
     <section className="home-section">
       <div className="container">
-        <div className="cta">
+        <div className="cta" data-reveal>
           <span className="cta__icon"><Calendar size={26} strokeWidth={1.4} /></span>
           <div className="cta__text">
             <h2 className="cta__title">Ready to capture your moment?</h2>

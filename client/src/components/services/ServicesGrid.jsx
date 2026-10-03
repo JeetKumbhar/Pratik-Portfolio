@@ -11,9 +11,9 @@ export default function ServicesGrid() {
           title="Photography & Services"
           subtitle="Tailored photography services to capture your most important moments."
           align="center"
-          serif
+          serif split
         />
-        <ul className="svc-grid">
+        <ul className="svc-grid" data-stagger>
           {SERVICES.map((s) => (
             <li key={s.id}><ServiceCard service={s} /></li>
           ))}

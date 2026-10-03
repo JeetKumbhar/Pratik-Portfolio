@@ -8,18 +8,18 @@ export default function FeaturedPortfolio() {
   return (
     <section className="home-section home-section--alt">
       <div className="container featured">
-        <div className="featured__intro">
+        <div className="featured__intro" data-reveal>
           <SectionTitle
             className="title--script"
             eyebrow="My work"
             title="Featured Work"
             subtitle="From intimate portraits to grand celebrations, explore moments I've had the privilege to capture."
-            serif
+            serif split
           />
           <Button to="/portfolio" variant="outline" iconRight={<ChevronRight size={16} />}>View all portfolio</Button>
         </div>
 
-        <ul className="featured__grid">
+        <ul className="featured__grid" data-stagger>
           {FEATURED.map(({ title, to, src, fallback }) => (
             <li key={title}>
               <Link to={to} className="work-card" aria-label={`${title} gallery`}>

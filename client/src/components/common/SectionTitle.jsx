@@ -12,13 +12,14 @@ export default function SectionTitle({
   align = 'left', // left | center
   serif = false,
   caps = false,
+  split = false, // animate the heading word by word (desktop); see hooks/useScrollAnimations
   as: Heading = 'h2',
   className = '',
 }) {
   return (
     <header className={cx('section-title', align === 'center' && 'section-title--center', className)}>
       {eyebrow && <span className="section-title__eyebrow">{eyebrow}</span>}
-      <Heading className={cx('section-title__heading', serif && 'section-title__heading--serif', caps && 'section-title__heading--caps')}>
+      <Heading data-split={split ? '' : undefined} className={cx('section-title__heading', serif && 'section-title__heading--serif', caps && 'section-title__heading--caps')}>
         {title}
       </Heading>
       {subtitle && <p className="section-title__subtitle">{subtitle}</p>}

@@ -6,7 +6,7 @@ export default function ExperienceSection() {
     <section className="home-section home-section--alt">
       <div className="container">
         <div data-reveal>
-          <SectionTitle eyebrow="Experience" title="Years behind the lens" align="center" serif />
+          <SectionTitle eyebrow="Experience" title="Years behind the lens" align="center" serif split />
         </div>
 
         <dl className="exp-stats" data-stagger>

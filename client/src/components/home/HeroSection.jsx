@@ -23,7 +23,7 @@ export default function HeroSection() {
         <div className="hero__content">
           <p className="hero__eyebrow">Capturing moments, creating memories</p>
 
-          <h1 className="hero__title">
+          <h1 className="hero__title" data-split="load">
             Turning Moments Into Timeless <span className="hero__script">Stories</span>
           </h1>
 
