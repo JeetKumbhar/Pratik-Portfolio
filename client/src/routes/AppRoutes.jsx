@@ -6,6 +6,7 @@ import NotFound from '../pages/NotFound/NotFound';
 import About from '../pages/About/About';
 import Portfolio from '../pages/Portfolio/Portfolio';
 import Services from '../pages/Services/Services';
+import Contact from '../pages/Contact/Contact';
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -28,7 +29,7 @@ export default function AppRoutes() {
         <Route path="services" element={<Services />} />
         <Route path="booking" element={<Placeholder title="Book a Shoot" />} />
         <Route path="blog" element={<Placeholder title="Blog" />} />
-        <Route path="contact" element={<Placeholder title="Contact" />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="gallery/:id" element={<Placeholder title="Client Gallery" />} />
         <Route path="login" element={<Placeholder title="Login" />} />
         <Route path="*" element={<NotFound />} />
