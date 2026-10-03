@@ -4,6 +4,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import Home from '../pages/Home/Home';
 import NotFound from '../pages/NotFound/NotFound';
 import About from '../pages/About/About';
+import Portfolio from '../pages/Portfolio/Portfolio';
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -21,8 +22,8 @@ export default function AppRoutes() {
       {/* ---------- Public site: Navbar + page + Footer ---------- */}
       <Route element={<PublicLayout />}>
         <Route index element={<Home />} />
-        <Route path="about" element={<Placeholder title="About" />} />
-        <Route path="portfolio" element={<Placeholder title="Portfolio" />} />
+        <Route path="about" element={<About />} />
+        <Route path="portfolio" element={<Portfolio />} />
         <Route path="services" element={<Placeholder title="Services" />} />
         <Route path="booking" element={<Placeholder title="Book a Shoot" />} />
         <Route path="blog" element={<Placeholder title="Blog" />} />
@@ -30,7 +31,6 @@ export default function AppRoutes() {
         <Route path="gallery/:id" element={<Placeholder title="Client Gallery" />} />
         <Route path="login" element={<Placeholder title="Login" />} />
         <Route path="*" element={<NotFound />} />
-        <Route path="about" element={<About />} />
       </Route>
 
       {/* ---------- Admin: Sidebar + Header + page ---------- */}

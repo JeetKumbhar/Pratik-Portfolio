@@ -5,6 +5,7 @@
 @import './admin.css';
 @import './home.css';
 @import './about.css';
+@import './portfolio.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

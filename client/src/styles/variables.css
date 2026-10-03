@@ -1,0 +1,28 @@
+:root {
+  /* Colour */
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #181818;
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+  --text: #f2f0eb;
+  --text-muted: #9b978f;
+  --gold: #e6aa4c;
+  --gold-hover: #f0bb66;
+  --gold-soft: rgba(230, 170, 76, 0.12);
+  --success: #5fb877;
+  --warning: #e6aa4c;
+  --danger: #e5645a;
+
+  /* Type */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+
+  /* Shape & layout */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --container: 1240px;
+  --navbar-h: 72px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
