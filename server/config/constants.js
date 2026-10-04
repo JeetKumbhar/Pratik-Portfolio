@@ -1,0 +1,20 @@
+/**
+ * Single source of truth for allowed values on the server.
+ * These MUST match the lists in the frontend (components/booking/bookingData.js,
+ * portfolioData.js, contactData.js). Change both together.
+ */
+export const SHOOT_TYPES = ['wedding', 'pre-wedding', 'portrait', 'events', 'commercial', 'custom'];
+export const LOCATIONS = ['studio', 'outdoor', 'client', 'undecided'];
+export const STYLES = ['Natural', 'Moody', 'Bright & Airy', 'Cinematic', 'Dark & Dramatic', 'Warm & Cozy', 'Minimal', 'Editorial'];
+export const MAX_STYLES = 3;
+
+export const PORTFOLIO_CATEGORIES = ['wedding', 'portrait', 'events', 'commercial', 'family', 'pre-wedding', 'landscape'];
+
+export const MESSAGE_SUBJECTS = [...SHOOT_TYPES, 'general'];
+export const MESSAGE_STATUSES = ['new', 'read', 'replied', 'archived'];
+
+export const BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled', 'completed'];
+/** A booking in one of these statuses occupies its time slot. */
+export const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'];
+
+export const BOOKING_RULES = { openHour: 7, closeHour: 21, maxAdvanceDays: 730 };
