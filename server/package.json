@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "seed": "node scripts/seed.js",
-       "check:booking": "node scripts/checkBookingModel.js"
+    "check:booking": "node scripts/checkBookingModel.js",
+    "sync:indexes": "node scripts/syncIndexes.js",
+   "check:blocked": "node scripts/checkBlockedDateModel.js"
   },
   "keywords": [],
   "author": "",

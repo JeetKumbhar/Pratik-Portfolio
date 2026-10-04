@@ -54,6 +54,7 @@ function explainMongoError(err) {
   if (/bad auth|authentication failed/i.test(msg)) return 'Wrong database username or password in MONGO_URI. (Special characters in the password must be URL-encoded.)';
   if (/ENOTFOUND|querySrv/i.test(msg)) return 'Could not find the cluster. Check the host in MONGO_URI, and your internet connection.';
   if (/ECONNREFUSED|Server selection timed out|could not connect to any servers/i.test(msg)) return 'Could not reach Atlas. In Atlas → Network Access, add your current IP address (or 0.0.0.0/0 while developing).';
+  if (/IndexOptionsConflict|IndexKeySpecsConflict|different options|same name/i.test(msg)) return 'A model index changed. Run:  npm run sync:indexes   then start the server again.';
   return null;
 }
 
@@ -69,7 +70,14 @@ async function start() {
     process.exit(1);
   }
 
-  const server = app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT} (${process.env.NODE_ENV || 'development'})`));
+  const server = app.listen(PORT, (err) => {
+    // Express 5 passes startup errors (e.g. "port already in use") to this callback
+    if (err) {
+      console.error(`Could not listen on port ${PORT}: ${err.message}`);
+      process.exit(1);
+    }
+    console.log(`Server running on http://localhost:${PORT} (${process.env.NODE_ENV || 'development'})`);
+  });
 
   const shutdown = (signal) => {
     console.log(`\n${signal} received, shutting down`);

@@ -18,3 +18,13 @@ export const BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled', 'completed
 export const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'];
 
 export const BOOKING_RULES = { openHour: 7, closeHour: 21, maxAdvanceDays: 730 };
+
+/** Why the photographer is unavailable on a day (or on some hours of a day) */
+export const BLOCKED_DATE_TYPES = ['offline_booking', 'editing', 'vacation', 'personal', 'other'];
+export const BLOCKED_DATE_LABELS = {
+  offline_booking: 'Offline booking', // a job taken by phone / in person, not through the website
+  editing: 'Editing',
+  vacation: 'Vacation',
+  personal: 'Personal',
+  other: 'Other',
+};
