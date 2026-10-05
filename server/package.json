@@ -10,7 +10,9 @@
     "seed": "node scripts/seed.js",
     "check:booking": "node scripts/checkBookingModel.js",
     "sync:indexes": "node scripts/syncIndexes.js",
-   "check:blocked": "node scripts/checkBlockedDateModel.js"
+    "check:blocked": "node scripts/checkBlockedDateModel.js",
+    "check:portfolio": "node scripts/checkPortfolioModel.js"
+
   },
   "keywords": [],
   "author": "",
