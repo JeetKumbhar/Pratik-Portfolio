@@ -15,9 +15,9 @@ export const photoBg = (src, fallback = 'linear-gradient(135deg, #3a2a14, #0f0c0
   `linear-gradient(0deg, rgba(0,0,0,0.7), rgba(0,0,0,0) 55%), url("${src}"), ${fallback}`;
 
 export const HERO_STATS = [
-  { value: '8+', label: 'Years experience' },
-  { value: '250+', label: 'Happy clients' },
-  { value: '250+', label: 'Projects completed' },
+  { value: '5+', label: 'Years experience' },
+  { value: '150+', label: 'Happy clients' },
+  { value: '150+', label: 'Projects completed' },
   { value: '20+', label: 'Destinations' },
 ];
 
@@ -39,7 +39,7 @@ export const SERVICES = [
 
 /** SAMPLE TEXT: replace with real client testimonials. */
 export const TESTIMONIALS = [
-  { quote: 'Working with Alex was an incredible experience. The photos turned out beyond amazing!', name: 'Sarah & James', role: 'Wedding' },
+  { quote: 'Working with Pratik was an incredible experience. The photos turned out beyond amazing!', name: 'Sarah & James', role: 'Wedding' },
   { quote: 'Calm, professional and endlessly creative. Every frame felt like a scene from a film.', name: 'Maya R.', role: 'Portrait session' },
-  { quote: 'Alex made the whole day effortless and delivered our gallery earlier than promised.', name: 'The Patel Family', role: 'Family shoot' },
+  { quote: 'Pratik made the whole day effortless and delivered our gallery earlier than promised.', name: 'The Patel Family', role: 'Family shoot' },
 ];

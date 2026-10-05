@@ -1,10 +1,10 @@
 export const SITE = {
-  name: 'Alex Morgan',
+  name: 'Pratik Shelke',
   tagline: 'Photography',
-  email: 'hello@alexmorgan.com',
-  phone: '+1 (123) 456-7890',
+  email: 'pratik1238737@gmail.com',
+  phone: '+91 84467 41308',
   social: {
-    instagram: 'https://instagram.com/',
+    instagram: 'https://www.instagram.com/pratikshelke_photography?stkn=MWcxcTMwYnNrOTht',
     facebook: 'https://facebook.com/',
     pinterest: 'https://pinterest.com/',
   },

@@ -1,189 +1,180 @@
-import Booking from '../models/Booking.js';
-import Package from '../models/Package.js';
+import { Booking, Package } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import httpError from '../utils/httpError.js';
-import sendEmail from '../utils/sendEmail.js';
-import { isSlotBlocked } from '../utils/availability.js';
-import { pickBookingInput, pickBookingUpdate, parseListQuery } from '../utils/bookingInput.js';
-import { isDateKey, isFutureDate, isWithinAdvance } from '../utils/validators.js';
-import { ACTIVE_BOOKING_STATUSES } from '../config/constants.js';
-
-const MAX_PENDING_PER_EMAIL = 3;
-const SLOT_UNAVAILABLE = 'That time is not available. Please choose another.';
-const CUSTOM_PACKAGE = { slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed' };
+import { httpError } from '../utils/httpError.js';
+import { isDateKey } from '../utils/validators.js';
+import { BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES } from '../config/constants.js';
+import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
+import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 
 // ---------------------------------------------------------------- helpers
-/** Mongoose field names → the names the frontend form uses */
-const CLIENT_FIELD = { numberOfPeople: 'people', specialRequest: 'requests', 'package.slug': 'packageId', 'package.name': 'packageId' };
-const clientErrors = (mongooseErrors) => {
-  const out = {};
-  for (const [path, e] of Object.entries(mongooseErrors)) {
-    const key = CLIENT_FIELD[path] ?? path;
-    if (!out[key]) out[key] = e.message;
-  }
-  return out;
-};
+const str = (v) => (typeof v === 'string' ? v : undefined);
+const num = (v) => { const n = Number(v); return v !== '' && v !== null && Number.isFinite(n) ? n : undefined; };
+const strArray = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-async function saveBooking(booking) {
-  try {
-    await booking.save();
-  } catch (err) {
-    if (err.name === 'ValidationError') throw httpError(400, 'Validation failed', clientErrors(err.errors));
-    throw err; // duplicate slot (E11000) etc. → errorHandler
-  }
+const CUSTOM_PACKAGE = { slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed' };
+
+/** The package snapshot always comes from the database. A price sent by the browser is ignored. */
+async function resolvePackage(slug) {
+  if (!slug) throw httpError(400, 'Please choose a package.');
+  if (slug === 'custom') return CUSTOM_PACKAGE;
+  const pkg = await Package.findOne({ slug: slug.toLowerCase(), active: true });
+  if (!pkg) throw httpError(400, 'That package is not available. Please choose another.');
+  return { packageId: pkg._id, slug: pkg.slug, name: pkg.name, price: pkg.price, duration: pkg.duration };
 }
 
-/** The package price/name/duration come from OUR database, never from the browser. */
-async function findPackage(slug, { onlyActive = true } = {}) {
-  if (slug === 'custom') return { snapshot: { ...CUSTOM_PACKAGE }, category: 'general' };
-  const pkg = await Package.findOne({ slug: slug.toLowerCase(), ...(onlyActive && { active: true }) });
-  if (!pkg) return null;
-  return {
-    snapshot: { packageId: pkg._id, slug: pkg.slug, name: pkg.name, price: pkg.price, duration: pkg.duration },
-    category: pkg.category,
-  };
-}
+// accepts the frontend's names too: { package: { id } } or { packageId }
+const packageSlugFrom = (b) => str(b.package?.id) ?? str(b.package?.slug) ?? str(b.packageId) ?? str(b.package);
 
-/** Accepts a Mongo _id or a reference like AM-K3X9QA */
-async function findBooking(param) {
-  let query = null;
-  if (/^AM-[A-Z0-9]{6}$/i.test(param)) query = { bookingId: param.toUpperCase() };
-  else if (/^[a-f\d]{24}$/i.test(param)) query = { _id: param };
-  if (!query) throw httpError(400, 'Invalid booking id.');
-
-  const booking = await Booking.findOne(query).select('+adminNotes');
-  if (!booking) throw httpError(404, 'Booking not found.');
+async function findBooking(id, { withNotes = false } = {}) {
+  const query = /^[a-f\d]{24}$/i.test(id) ? Booking.findById(id) : Booking.findOne({ bookingId: String(id).toUpperCase() });
+  if (withNotes) query.select('+adminNotes');
+  const booking = await query;
+  if (!booking) throw httpError(404, 'Booking not found');
   return booking;
 }
 
-const send = (mail) => sendEmail(mail).catch((e) => console.error('[email] failed:', e.message)); // never block or fail a request
-const when = (b) => `${b.date} at ${b.time}`;
-const firstName = (b) => b.name.trim().split(/\s+/)[0];
-
-// ---------------------------------------------------------------- POST /api/bookings  (public)
+// ---------------------------------------------------------------- POST /api/bookings  (PUBLIC)
 export const createBooking = asyncHandler(async (req, res) => {
-  const { packageSlug, ...fields } = pickBookingInput(req.body);
-  const customErrors = {};
+  const b = req.body ?? {};
 
-  if (fields.date && isDateKey(fields.date)) {
-    if (!isFutureDate(fields.date)) customErrors.date = 'Pick a date after today.';
-    else if (!isWithinAdvance(fields.date)) customErrors.date = 'That date is too far ahead to book yet.';
-  }
-
-  let snapshot;
-  if (!packageSlug) {
-    customErrors.packageId = 'Choose a package, or "Not sure yet".';
-  } else {
-    const found = await findPackage(packageSlug);
-    if (!found) customErrors.packageId = 'That package is no longer available. Please choose again.';
-    else if (found.category !== 'general' && fields.shootType && found.category !== fields.shootType) customErrors.packageId = 'That package is not offered for this type of shoot.';
-    else snapshot = found.snapshot;
-  }
-
-  // Only whitelisted fields reach the model; status, bookingId, adminNotes are always server-controlled
-  const booking = new Booking({ ...fields, package: snapshot });
-
-  let schemaErrors = {};
-  try {
-    await booking.validate();
-  } catch (err) {
-    if (err.name !== 'ValidationError') throw err;
-    schemaErrors = clientErrors(err.errors);
-  }
-  const errors = { ...schemaErrors, ...customErrors };
-  if (Object.keys(errors).length) throw httpError(400, 'Validation failed', errors);
-
-  if (await isSlotBlocked(booking.date, booking.time)) throw httpError(409, SLOT_UNAVAILABLE);
-
-  const pending = await Booking.countDocuments({ email: booking.email, status: 'pending' });
-  if (pending >= MAX_PENDING_PER_EMAIL) {
-    throw httpError(429, 'You already have several pending requests. Please wait for a reply, or contact me directly.');
-  }
-
-  // The unique slot index makes the database reject a simultaneous double-booking (→ 409 from errorHandler)
-  await saveBooking(booking);
-
-  send({
-    to: booking.email,
-    subject: `Booking request received (${booking.bookingId})`,
-    text: `Hi ${firstName(booking)},\n\nThanks for your booking request. I'll review it and get back to you within 24 hours to confirm.\n\nReference: ${booking.bookingId}\nShoot: ${booking.shootType}\nRequested: ${when(booking)}\nPackage: ${booking.package.name}\n\nPlease keep your reference handy if you contact me.`,
+  // Whitelist: status, adminNotes, bookingId, slotKey can never be set by the public
+  const booking = new Booking({
+    name: str(b.name),
+    email: str(b.email),
+    phone: str(b.phone),
+    shootType: str(b.shootType),
+    location: str(b.location),
+    locationDetails: str(b.locationDetails),
+    numberOfPeople: num(b.numberOfPeople ?? b.people),
+    styles: strArray(b.styles),
+    specialRequest: str(b.specialRequest ?? b.requests),
+    budget: str(b.budget),
+    date: str(b.date),
+    time: str(b.time),
+    package: await resolvePackage(packageSlugFrom(b)),
   });
-  const notify = process.env.NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
-  if (notify) {
-    send({ to: notify, subject: `New booking request ${booking.bookingId}`, text: `${booking.name} (${booking.email}, ${booking.phone}) requested a ${booking.shootType} shoot on ${when(booking)}.\nPackage: ${booking.package.name}` });
+
+  await booking.validate(); // field-by-field errors (400) before anything else
+
+  if (!isBookableDate(booking.date)) throw httpError(400, 'Please choose a date after today.');
+  if (!SLOT_TIMES.includes(booking.time)) throw httpError(400, 'Please choose one of the available time slots.');
+  if (!(await isSlotFree(booking.date, booking.time))) {
+    throw httpError(409, 'That time slot is no longer available. Please choose another.');
   }
 
-  res.status(201).json({
-    success: true,
-    data: {
-      reference: booking.bookingId,
-      status: booking.status,
-      shootType: booking.shootType,
-      date: booking.date,
-      time: booking.time,
-      package: booking.package.name,
-    },
-  });
+  await booking.save(); // the unique slotKey index is the final guard against a simultaneous double-booking (409)
+
+  sendBookingReceived(booking); // fire and forget: an email problem never fails the booking
+
+  res.status(201).json({ success: true, data: booking });
 });
 
-// ---------------------------------------------------------------- GET /api/bookings  (admin)
+// ---------------------------------------------------------------- GET /api/bookings  (ADMIN)
+// ?status= &shootType= &date= &from= &to= &search= &sort=-createdAt|createdAt|date|-date &page= &limit=
+const SORTS = { '-createdAt': { createdAt: -1 }, createdAt: { createdAt: 1 }, date: { date: 1, time: 1 }, '-date': { date: -1, time: -1 } };
+
 export const getBookings = asyncHandler(async (req, res) => {
-  const { filter, sort, page, limit } = parseListQuery(req.query);
+  const q = (name) => {
+    const v = req.query[name];
+    if (v === undefined) return undefined;
+    if (typeof v !== 'string') throw httpError(400, `Invalid ${name}`);
+    return v.trim();
+  };
+
+  const filter = {};
+  const status = q('status');
+  if (status) {
+    if (!BOOKING_STATUSES.includes(status)) throw httpError(400, `status must be one of: ${BOOKING_STATUSES.join(', ')}`);
+    filter.status = status;
+  }
+  const shootType = q('shootType');
+  if (shootType) {
+    if (!SHOOT_TYPES.includes(shootType)) throw httpError(400, 'Invalid shootType');
+    filter.shootType = shootType;
+  }
+
+  const date = q('date');
+  const from = q('from');
+  const to = q('to');
+  [['date', date], ['from', from], ['to', to]].forEach(([name, v]) => {
+    if (v && !isDateKey(v)) throw httpError(400, `${name} must be YYYY-MM-DD`);
+  });
+  if (date) filter.date = date;
+  else if (from || to) filter.date = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
+
+  const search = q('search');
+  if (search) {
+    if (search.length > 50) throw httpError(400, 'Search is too long');
+    const rx = new RegExp(escapeRegex(search), 'i');
+    filter.$or = [{ name: rx }, { email: rx }, { bookingId: rx }];
+  }
+
+  const sortKey = q('sort') || '-createdAt';
+  if (!SORTS[sortKey]) throw httpError(400, `sort must be one of: ${Object.keys(SORTS).join(', ')}`);
+
+  const page = q('page') === undefined ? 1 : Number(q('page'));
+  const limit = q('limit') === undefined ? 20 : Number(q('limit'));
+  if (!Number.isInteger(page) || page < 1) throw httpError(400, 'page must be 1 or more');
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw httpError(400, 'limit must be 1 to 100');
 
   const [total, bookings] = await Promise.all([
     Booking.countDocuments(filter),
-    Booking.find(filter).select('+adminNotes').sort(sort).skip((page - 1) * limit).limit(limit),
+    Booking.find(filter).sort(SORTS[sortKey]).skip((page - 1) * limit).limit(limit),
   ]);
 
-  res.json({ success: true, count: bookings.length, total, page, pages: Math.max(1, Math.ceil(total / limit)), data: bookings });
+  res.json({ success: true, total, page, pages: Math.max(1, Math.ceil(total / limit)), count: bookings.length, data: bookings });
 });
 
-// ---------------------------------------------------------------- GET /api/bookings/:id  (admin)
+// ---------------------------------------------------------------- GET /api/bookings/:id  (ADMIN)
+// :id is the database id OR the reference (AM-K3X9QA)
 export const getBooking = asyncHandler(async (req, res) => {
-  const booking = await findBooking(req.params.id);
-  res.json({ success: true, data: booking });
+  res.json({ success: true, data: await findBooking(req.params.id, { withNotes: true }) });
 });
 
-// ---------------------------------------------------------------- PATCH /api/bookings/:id  (admin)
+// ---------------------------------------------------------------- PATCH /api/bookings/:id  (ADMIN)
+const EDITABLE = [
+  'status', 'adminNotes', 'name', 'email', 'phone', 'shootType', 'location', 'locationDetails',
+  'numberOfPeople', 'styles', 'specialRequest', 'budget', 'date', 'time',
+];
+
 export const updateBooking = asyncHandler(async (req, res) => {
-  const booking = await findBooking(req.params.id);
-  const { notifyCustomer, packageSlug, ...updates } = pickBookingUpdate(req.body);
-  if (!Object.keys(updates).length && !packageSlug) throw httpError(400, 'Nothing to update.');
+  const body = req.body ?? {};
+  const booking = await findBooking(req.params.id, { withNotes: true });
+  const before = { status: booking.status, date: booking.date, time: booking.time };
 
-  const previousStatus = booking.status;
+  let touched = false;
+  EDITABLE.forEach((key) => {
+    if (key in body) { booking[key] = body[key]; touched = true; }
+  });
+  if ('package' in body || 'packageId' in body) {
+    booking.package = await resolvePackage(packageSlugFrom(body));
+    touched = true;
+  }
+  if (!touched) throw httpError(400, 'Nothing to update. Editable fields: status, adminNotes, date, time, package, and the customer/shoot details.');
 
-  if (packageSlug) {
-    const found = await findPackage(packageSlug, { onlyActive: false });
-    if (!found) throw httpError(400, 'Validation failed', { packageId: 'Package not found.' });
-    updates.package = found.snapshot;
+  await booking.validate();
+
+  // Only look for conflicts when the booking will hold a slot AND the slot or status changed
+  const slotChanged = booking.date !== before.date || booking.time !== before.time;
+  const reactivated = !ACTIVE_BOOKING_STATUSES.includes(before.status) && ACTIVE_BOOKING_STATUSES.includes(booking.status);
+  if (ACTIVE_BOOKING_STATUSES.includes(booking.status) && (slotChanged || reactivated)) {
+    if (!SLOT_TIMES.includes(booking.time)) throw httpError(400, 'Time must be one of the hourly slots.');
+    const free = await isSlotFree(booking.date, booking.time, { excludeBookingId: booking._id, enforceDateRules: false });
+    if (!free) throw httpError(409, 'That time slot is already booked or blocked.');
   }
 
-  booking.set(updates);
+  await booking.save(); // save() (not findByIdAndUpdate) so the slot lock is recalculated
 
-  // If the booking now occupies a slot it didn't before (moved, or re-opened), the slot must not be blocked
-  const occupies = ACTIVE_BOOKING_STATUSES.includes(booking.status);
-  if (occupies && (booking.isModified('date') || booking.isModified('time') || booking.isModified('status'))) {
-    if (await isSlotBlocked(booking.date, booking.time)) throw httpError(409, SLOT_UNAVAILABLE);
-  }
-
-  // save() (not findByIdAndUpdate) so the slot lock is recalculated; a clash with another booking → 409
-  await saveBooking(booking);
-
-  if (notifyCustomer !== false && previousStatus !== booking.status) {
-    if (booking.status === 'confirmed') {
-      send({ to: booking.email, subject: `Your booking is confirmed (${booking.bookingId})`, text: `Hi ${firstName(booking)},\n\nGreat news: your ${booking.shootType} shoot is confirmed for ${when(booking)}.\nReference: ${booking.bookingId}\n\nI'll be in touch with the details. Looking forward to it!` });
-    } else if (booking.status === 'cancelled') {
-      send({ to: booking.email, subject: `Your booking was cancelled (${booking.bookingId})`, text: `Hi ${firstName(booking)},\n\nYour booking ${booking.bookingId} (${when(booking)}) has been cancelled. If this is unexpected, please reply to this email.` });
-    }
-  }
+  if (booking.status !== before.status) sendStatusEmail(booking); // confirmed / cancelled only
 
   res.json({ success: true, data: booking });
 });
 
-// ---------------------------------------------------------------- DELETE /api/bookings/:id  (admin)
-// Deleting erases the record for good. To keep history, PATCH status to "cancelled" instead.
+// ---------------------------------------------------------------- DELETE /api/bookings/:id  (ADMIN)
+// Permanent. To keep a record and free the slot, PATCH status to "cancelled" instead.
 export const deleteBooking = asyncHandler(async (req, res) => {
   const booking = await findBooking(req.params.id);
   await booking.deleteOne();
-  res.json({ success: true, message: 'Booking deleted.' });
+  res.json({ success: true, message: `Booking ${booking.bookingId} deleted` });
 });

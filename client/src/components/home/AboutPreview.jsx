@@ -12,15 +12,15 @@ export default function AboutPreview() {
         <div
           className="about-preview__photo"
           role="img"
-          aria-label="Alex Morgan holding a camera"
+          aria-label="Pratik Shelke holding a camera"
           style={{ backgroundImage: photoBg(IMAGES.about, 'linear-gradient(160deg, #2a2a2a, #0c0c0c)') }}
         />
         </div>
 
         <div className="about-preview__body" data-reveal>
-          <SectionTitle className="title--script" eyebrow="About me" title="Hi, I'm Alex Morgan" serif split />
+          <SectionTitle className="title--script" eyebrow="About me" title="Hi, I'm Pratik Shelke" serif split />
           <p>
-            I'm a professional photographer with over 8 years of experience capturing real moments and emotions.
+            I'm a professional photographer with over 5 years of experience capturing real moments and emotions.
             For me, photography is more than just taking pictures. It's about preserving memories that last a lifetime.
           </p>
           <p>From the quiet, raw moments to the big, unforgettable ones, I'm here to tell your story through my lens.</p>
