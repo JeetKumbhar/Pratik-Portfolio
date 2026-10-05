@@ -40,6 +40,9 @@ export const errorHandler = (err, req, res, next) => {
     message = 'Request body too large';
   }
 
+  // Errors thrown with httpError(status, message, { field: 'message' })
+  if (!errors && err.fieldErrors) errors = err.fieldErrors;
+
   if (status >= 500) {
     console.error(err);
     if (process.env.NODE_ENV === 'production') message = 'Something went wrong on our side. Please try again.';

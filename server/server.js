@@ -12,8 +12,8 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 import packageRoutes from './routes/packageRoutes.js';
 // Later phases:
-// import authRoutes from './routes/authRoutes.js';
-// import bookingRoutes from './routes/bookingRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
 // import portfolioRoutes from './routes/portfolioRoutes.js';
 // import clientRoutes from './routes/clientRoutes.js';
 // import messageRoutes from './routes/messageRoutes.js';
@@ -38,8 +38,8 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/packages', packageRoutes);
-// app.use('/api/auth', authRoutes);
-// app.use('/api/bookings', bookingRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/bookings', bookingRoutes);
 // app.use('/api/portfolio', portfolioRoutes);
 // app.use('/api/clients', clientRoutes);
 // app.use('/api/messages', messageRoutes);
@@ -59,6 +59,13 @@ function explainMongoError(err) {
 }
 
 async function start() {
+  const secret = process.env.JWT_SECRET || '';
+  if (secret.length < 32 || /^replace-with/i.test(secret)) {
+    console.error('\nCould not start: JWT_SECRET in .env is missing, shorter than 32 characters, or still the placeholder.');
+    console.error('Generate one with:  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
+    process.exit(1);
+  }
+
   try {
     await connectDB();
     // Make sure every unique/other index exists before accepting requests

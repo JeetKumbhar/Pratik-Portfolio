@@ -36,3 +36,26 @@ export const isBookableTime = (v) => {
   const minutes = Number(match[1]) * 60 + Number(match[2]);
   return minutes >= BOOKING_RULES.openHour * 60 && minutes <= BOOKING_RULES.closeHour * 60;
 };
+
+/**
+ * Today's date as 'YYYY-MM-DD' in the BUSINESS's timezone, so "after today" means the same thing
+ * wherever the server runs. Set BUSINESS_TIMEZONE in .env (e.g. 'Asia/Kolkata'); default is UTC.
+ */
+export const todayKey = (now = new Date()) => {
+  const format = (timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  try {
+    return format(process.env.BUSINESS_TIMEZONE || 'UTC');
+  } catch {
+    return format('UTC'); // invalid timezone name in .env
+  }
+};
+
+/** 'YYYY-MM-DD' plus n days */
+export const addDays = (key, n) => {
+  const d = new Date(`${key}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+export const isFutureDate = (key) => key > todayKey();
+export const isWithinAdvance = (key) => key <= addDays(todayKey(), BOOKING_RULES.maxAdvanceDays);
