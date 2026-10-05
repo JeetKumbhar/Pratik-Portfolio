@@ -13,7 +13,9 @@
     "check:blocked": "node scripts/checkBlockedDateModel.js",
     "check:portfolio": "node scripts/checkPortfolioModel.js",
     "migrate:packages": "node scripts/migratePackages.js",
-    "check:package": "node scripts/checkPackageModel.js"
+    "check:package": "node scripts/checkPackageModel.js",
+    "check:message": "node scripts/checkMessageModel.js"
+
 
   },
   "keywords": [],

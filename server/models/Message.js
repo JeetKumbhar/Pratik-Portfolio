@@ -2,7 +2,11 @@ import mongoose from 'mongoose';
 import { MESSAGE_SUBJECTS, MESSAGE_STATUSES } from '../config/constants.js';
 import { isEmail, isPhone } from '../utils/validators.js';
 
-/** Contact-form messages (POST /api/messages). */
+/**
+ * Contact-form messages (POST /api/messages).
+ * Fields: name, email, phone, message, status, createdAt (+ subject, the optional topic from the form).
+ * status: new → read → replied → archived  (admin changes it; new messages always start as 'new').
+ */
 const messageSchema = new mongoose.Schema(
   {
     name: { type: String, required: [true, 'Name is required'], trim: true, minlength: 2, maxlength: 80 },
@@ -15,8 +19,9 @@ const messageSchema = new mongoose.Schema(
       validate: { validator: (v) => !v || isPhone(v), message: 'Enter a valid phone number' },
     },
     subject: {
-      type: String, required: [true, 'Subject is required'],
+      type: String,
       enum: { values: MESSAGE_SUBJECTS, message: 'Invalid subject' },
+      default: 'general', // optional: the contact form's "What's this about?" topic
     },
     message: {
       type: String, required: [true, 'Message is required'], trim: true,
