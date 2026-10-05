@@ -28,3 +28,6 @@ export const BLOCKED_DATE_LABELS = {
   personal: 'Personal',
   other: 'Other',
 };
+
+/** Which kind of shoot a package is for. 'general' = offered for every kind of shoot. */
+export const PACKAGE_CATEGORIES = ['general', ...SHOOT_TYPES];

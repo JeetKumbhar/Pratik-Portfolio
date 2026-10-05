@@ -9,9 +9,9 @@ import connectDB from '../config/db.js';
 import { User, Package } from '../models/index.js';
 
 const PACKAGES = [
-  { name: 'Essential', slug: 'essential', tagline: 'Perfect for personal sessions', price: 600, duration: '1 hour', features: ['1 location', '30+ edited photos', 'Online gallery', 'Print release'], popular: false, sortOrder: 1 },
-  { name: 'Standard', slug: 'standard', tagline: 'Great for couples & small events', price: 1200, duration: '2 hours', features: ['1 to 2 locations', '75+ edited photos', 'Online gallery', 'Print release', 'Pre-shoot consultation'], popular: true, sortOrder: 2 },
-  { name: 'Premium', slug: 'premium', tagline: 'For weddings & big moments', price: 2500, duration: 'Up to 6 hours', features: ['Multiple locations', '150+ edited photos', 'Online gallery', 'Print release', 'Pre-shoot consultation', 'Photo album (10x10)'], popular: false, sortOrder: 3 },
+  { name: 'Essential', slug: 'essential', category: 'general', description: 'Perfect for personal sessions', price: 600, duration: '1 hour', features: ['1 location', '30+ edited photos', 'Online gallery', 'Print release'], popular: false, sortOrder: 1 },
+  { name: 'Standard', slug: 'standard', category: 'general', description: 'Great for couples & small events', price: 1200, duration: '2 hours', features: ['1 to 2 locations', '75+ edited photos', 'Online gallery', 'Print release', 'Pre-shoot consultation'], popular: true, sortOrder: 2 },
+  { name: 'Premium', slug: 'premium', category: 'general', description: 'For weddings & big moments', price: 2500, duration: 'Up to 6 hours', features: ['Multiple locations', '150+ edited photos', 'Online gallery', 'Print release', 'Pre-shoot consultation', 'Photo album (10x10)'], popular: false, sortOrder: 3 },
 ];
 
 async function seed() {

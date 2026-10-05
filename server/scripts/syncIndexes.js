@@ -1,4 +1,3 @@
-
 /**
  * npm run sync:indexes
  * Makes the indexes in Atlas match the models exactly (drops ones that no longer exist in a schema,
