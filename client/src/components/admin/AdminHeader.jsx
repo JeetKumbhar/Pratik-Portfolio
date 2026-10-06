@@ -1,16 +1,21 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu } from 'lucide-react';
 import Button from '../common/Button';
 import { ADMIN_NAV } from './adminNav';
+import useAuth from '../../hooks/useAuth';
 
 export default function AdminHeader({ onMenuClick }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const initials = (user?.name || 'Admin').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
   // Title = the sidebar item whose path matches the current URL
   const current = ADMIN_NAV.find((i) => (i.end ? pathname === i.to : pathname.startsWith(i.to)));
 
   const handleLogout = () => {
-    // TODO: call logout() from AuthContext, then navigate('/login')
+    logout(); // forgets the token in this browser
+    navigate('/admin/login', { replace: true });
   };
 
   return (
@@ -23,7 +28,8 @@ export default function AdminHeader({ onMenuClick }) {
       </div>
 
       <div className="admin-header__right">
-        <span className="admin-header__avatar" aria-hidden="true">AM</span>
+        <span className="admin-header__name">{user?.name}</span>
+        <span className="admin-header__avatar" aria-hidden="true">{initials}</span>
         <Button variant="ghost" size="sm" icon={<LogOut size={16} />} onClick={handleLogout}>
           Logout
         </Button>

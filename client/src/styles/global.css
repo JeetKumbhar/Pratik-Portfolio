@@ -9,8 +9,10 @@
 @import './services.css';
 @import './contact.css';
 @import './booking.css';
+@import './auth.css';
 @import './responsive.css';
 @import './motion.css';
+
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

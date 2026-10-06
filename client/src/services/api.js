@@ -20,6 +20,10 @@ export class ApiError extends Error {
   }
 }
 
+// AuthContext registers a function here; it is called when a LOGGED-IN request is answered with 401 (token expired)
+let onUnauthorized = null;
+export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn; };
+
 const client = axios.create({
   baseURL: BASE,
   timeout: 15000,
@@ -33,6 +37,7 @@ client.interceptors.response.use(
 
     if (error.response) {
       const { status, data } = error.response;
+      if (status === 401 && error.config?.authed) onUnauthorized?.(); // a plain failed login has no token, so it never triggers this
       return Promise.reject(new ApiError(data?.message || `Something went wrong (${status}).`, status, data?.errors));
     }
     if (error.code === 'ECONNABORTED') {
@@ -42,7 +47,7 @@ client.interceptors.response.use(
   }
 );
 
-const auth = (token) => (token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+const auth = (token) => (token ? { authed: true, headers: { Authorization: `Bearer ${token}` } } : {});
 
 export const api = {
   get: (path, options = {}) => client.get(path, { params: options.params, ...auth(options.token) }),
