@@ -1,14 +1,10 @@
-import { useState } from 'react';
 import { AlertCircle, ArrowLeft, CalendarDays, Camera, ClipboardList, Info, Lock, MapPin, Palette, Pencil, Send, Tag, User, Users } from 'lucide-react';
 import Button from '../common/Button';
 import useBooking from '../../hooks/useBooking';
-import { submitBooking } from '../../services/bookingService';
 import { LOCATIONS, SHOOT_TYPES, formatDate, formatTime, labelOf, money } from './bookingData';
 
 export default function BookingReview() {
-  const { values, update, goTo, back, selectedPackage, setSubmission, validateAll } = useBooking();
-  const [state, setState] = useState('idle'); // idle | submitting | error
-  const [errorMessage, setErrorMessage] = useState('');
+  const { values, goTo, back, selectedPackage, submit, submitting, submitError } = useBooking();
 
   const rows = [
     { icon: User, label: 'Details', step: 1, main: values.name, sub: `${values.email} · ${values.phone}` },
@@ -20,35 +16,6 @@ export default function BookingReview() {
     { icon: Tag, label: 'Package', step: 2, main: selectedPackage?.name, sub: selectedPackage?.price != null ? money(selectedPackage.price) : 'Custom quote to follow' },
     { icon: ClipboardList, label: 'Special requests', step: 2, main: values.requests || 'None' },
   ];
-
-  const onSubmit = async () => {
-    // Final gate: never send incomplete data. If anything is wrong, jump to that step.
-    const { isValid, errors, firstInvalidStep } = validateAll();
-    if (!isValid) {
-      goTo(firstInvalidStep, Object.values(errors[firstInvalidStep]));
-      return;
-    }
-
-    setState('submitting');
-    try {
-      const result = await submitBooking({
-        ...values,
-        package: selectedPackage && { id: selectedPackage.id, name: selectedPackage.name, price: selectedPackage.price, duration: selectedPackage.duration },
-      });
-      setSubmission({ reference: result.reference, name: values.name, email: values.email, date: values.date, time: values.time, shootType: values.shootType });
-    } catch (err) {
-      if (err.status === 409) {
-        // Someone else took the slot while this person was filling in the form: send them back to pick another
-        update({ time: '' });
-        setState('idle');
-        goTo(3, [err.message]);
-        return;
-      }
-      const firstFieldError = err.errors && Object.values(err.errors)[0];
-      setErrorMessage(firstFieldError || err.message || "We couldn't send your request. Please try again.");
-      setState('error');
-    }
-  };
 
   return (
     <div className="step">
@@ -80,11 +47,11 @@ export default function BookingReview() {
 
       <p className="step__note"><Info size={14} /> This is an estimated price. Final price may vary based on specific requirements.</p>
 
-      {state === 'error' && <p className="form-alert" role="alert"><AlertCircle size={18} /> {errorMessage}</p>}
+      {submitError && <p className="form-alert" role="alert"><AlertCircle size={18} /> {submitError}</p>}
 
       <div className="step-nav">
-        <Button variant="ghost" size="lg" icon={<ArrowLeft size={16} />} onClick={back} disabled={state === 'submitting'}>Previous</Button>
-        <Button size="lg" iconRight={<Send size={16} />} onClick={onSubmit} loading={state === 'submitting'}>Submit request</Button>
+        <Button variant="ghost" size="lg" icon={<ArrowLeft size={16} />} onClick={back} disabled={submitting}>Previous</Button>
+        <Button size="lg" iconRight={<Send size={16} />} onClick={() => submit()} loading={submitting}>Submit request</Button>
       </div>
       <p className="step__note"><Lock size={14} /> Your information is secure and will never be shared.</p>
     </div>

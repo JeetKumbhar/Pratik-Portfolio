@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { getPackages } from '../services/packageService';
+import { submitBooking } from '../services/bookingService';
 import { CUSTOM_PACKAGE, LOCATIONS, SHOOT_TYPES, fromKey } from '../components/booking/bookingData';
 import { validateBooking } from '../utils/validation';
 
@@ -47,6 +48,8 @@ export function BookingProvider({ children }) {
   const [packages, setPackages] = useState([]);
   const [packagesStatus, setPackagesStatus] = useState('loading');
   const [notice, setNotice] = useState([]); // messages shown when we send someone back to fix something
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(''); // message when sending fails
 
   useEffect(() => {
     let cancelled = false;
@@ -68,11 +71,12 @@ export function BookingProvider({ children }) {
   const goTo = useCallback((step, messages = []) => {
     dispatch({ type: 'GOTO', step });
     setNotice(messages);
+    setSubmitError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
   const next = useCallback(() => goTo(state.step + 1), [goTo, state.step]);
   const back = useCallback(() => goTo(state.step - 1), [goTo, state.step]);
-  const reset = useCallback(() => { dispatch({ type: 'RESET' }); setSubmission(null); setNotice([]); }, []);
+  const reset = useCallback(() => { dispatch({ type: 'RESET' }); setSubmission(null); setNotice([]); setSubmitError(''); }, []);
 
   const selectedPackage = useMemo(() => {
     if (state.values.packageId === CUSTOM_PACKAGE.id) return CUSTOM_PACKAGE;
@@ -90,15 +94,54 @@ export function BookingProvider({ children }) {
     [state.values, packages, packagesStatus]
   );
 
+  /**
+   * Sends the booking to the backend (POST /api/bookings). Returns true on success.
+   *  - incomplete data      → jumps back to the first broken step (nothing is sent)
+   *  - 409 "slot just taken" → clears the time and sends the customer back to step 3
+   *  - any other failure     → submitError holds a message to show on the review step
+   *  - success               → `submission` is set, and the page shows <BookingSuccess />
+   */
+  const submit = useCallback(async () => {
+    const { isValid, errors, firstInvalidStep } = validateAll();
+    if (!isValid) {
+      goTo(firstInvalidStep, Object.values(errors[firstInvalidStep]));
+      return false;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const v = state.values;
+      const result = await submitBooking({
+        ...v,
+        package: selectedPackage && { id: selectedPackage.id, name: selectedPackage.name, price: selectedPackage.price, duration: selectedPackage.duration },
+      });
+      setSubmission({ reference: result.reference, name: v.name, email: v.email, date: v.date, time: v.time, shootType: v.shootType });
+      return true;
+    } catch (err) {
+      if (err.status === 409) {
+        update({ time: '' });
+        goTo(3, [err.message]);
+      } else {
+        const firstFieldError = err.errors && Object.values(err.errors)[0];
+        setSubmitError(firstFieldError || err.message || "We couldn't send your request. Please try again.");
+      }
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [validateAll, goTo, update, state.values, selectedPackage]);
+
   const value = useMemo(
     () => ({
       values: state.values, step: state.step, maxStep: state.maxStep,
       update, goTo, next, back, reset,
       packages, packagesStatus, selectedPackage,
       validateAll, notice,
+      submit, submitting, submitError,
       submission, setSubmission,
     }),
-    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, validateAll, notice, submission]
+    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, validateAll, notice, submit, submitting, submitError, submission]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

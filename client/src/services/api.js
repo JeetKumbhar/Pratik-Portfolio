@@ -1,9 +1,13 @@
+import axios from 'axios';
+
 /**
- * The one place the frontend talks to the backend.
- *   api.get('/packages')            api.post('/bookings', body)
- *   api.patch(path, body, { token })   api.delete(path, { token })      (token = admin JWT, later)
- * Every failure becomes an ApiError with a message that is safe to show to people.
- * Set the address in client/.env:   VITE_API_URL=http://localhost:5000/api
+ * The one place the frontend talks to the backend (Axios).
+ *   api.get('/packages')                     api.post('/bookings', body)
+ *   api.patch(path, body, { token })         api.delete(path, { token })      (token = admin JWT, for the Admin panel later)
+ *
+ * Every call resolves to the response BODY ({ success, data, ... }) and every failure is an ApiError whose
+ * message is safe to show to people (status 0 = server unreachable, 409 = slot just taken, 400 = invalid data).
+ * Set the server address in client/.env:   VITE_API_URL=http://localhost:5000/api
  */
 const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
@@ -11,38 +15,40 @@ export class ApiError extends Error {
   constructor(message, status = 0, errors) {
     super(message);
     this.name = 'ApiError';
-    this.status = status; // 0 = could not reach the server at all
-    this.errors = errors; // { field: 'message' } for validation errors (400)
+    this.status = status;
+    this.errors = errors; // { field: 'message' } for validation errors
   }
 }
 
-async function request(path, { method = 'GET', body, token } = {}) {
-  let res;
-  try {
-    res = await fetch(`${BASE}${path}`, {
-      method,
-      headers: {
-        ...(body !== undefined && { 'Content-Type': 'application/json' }),
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    throw new ApiError("Can't reach the server. Check your connection and try again.", 0);
+const client = axios.create({
+  baseURL: BASE,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+client.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (axios.isCancel(error)) return Promise.reject(error);
+
+    if (error.response) {
+      const { status, data } = error.response;
+      return Promise.reject(new ApiError(data?.message || `Something went wrong (${status}).`, status, data?.errors));
+    }
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new ApiError('The server took too long to respond. Please try again.', 0));
+    }
+    return Promise.reject(new ApiError("Can't reach the server. Check your connection and try again.", 0));
   }
+);
 
-  let data = null;
-  try { data = await res.json(); } catch { /* empty or non-JSON body */ }
-
-  if (!res.ok) throw new ApiError(data?.message || `Something went wrong (${res.status}).`, res.status, data?.errors);
-  return data;
-}
+const auth = (token) => (token ? { headers: { Authorization: `Bearer ${token}` } } : {});
 
 export const api = {
-  get: (path, options) => request(path, options),
-  post: (path, body, options) => request(path, { ...options, method: 'POST', body }),
-  patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
-  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
+  get: (path, options = {}) => client.get(path, { params: options.params, ...auth(options.token) }),
+  post: (path, body, options = {}) => client.post(path, body, auth(options.token)),
+  patch: (path, body, options = {}) => client.patch(path, body, auth(options.token)),
+  delete: (path, options = {}) => client.delete(path, auth(options.token)),
 };
 
 export default api;
