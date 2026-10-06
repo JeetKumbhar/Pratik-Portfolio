@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {
-  SHOOT_TYPES, LOCATIONS, STYLES, MAX_STYLES, BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES,
+  SHOOT_TYPES, LOCATIONS, STYLES, MAX_STYLES, BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, BOOKING_RULES, MAX_DURATION_HOURS,
 } from '../config/constants.js';
 import { isEmail, isPhone, isDateKey, isBookableTime } from '../utils/validators.js';
 import { generateBookingId } from '../utils/generateBookingId.js';
@@ -13,12 +13,14 @@ import { generateBookingId } from '../utils/generateBookingId.js';
  *
  * - `package` is a SNAPSHOT (name / price / duration at booking time), so changing prices later
  *   never rewrites old bookings. `package.packageId` links back to the Package document.
- *   NOTE: `package` is a reserved word in strict-mode JavaScript, so write `booking.package.name`
- *   (fine) but never `const { package } = booking` (syntax error). Use `const pkg = booking.package`.
- * - `slotKey` ("2099-06-15_14:00") has a unique sparse index: only ONE pending/confirmed booking can
- *   hold a time slot. Cancelled/completed bookings release it. The database itself stops double-booking
- *   even when two people submit at the same moment (the second gets error 11000 → 409 "slot taken").
- *   IMPORTANT: change status with doc.save() (not findByIdAndUpdate) so slotKey is recomputed.
+ *   `package.durationHours` is how long the shoot lasts; a 6-hour wedding at 10:00 occupies 10:00 to 15:00.
+ *   NOTE: `package` is a reserved word in strict-mode JavaScript, so write `booking.package.name` (fine)
+ *   but never `const { package } = booking` (syntax error). Use `const pkg = booking.package`.
+ * - `slotKeys` lists every hour the booking occupies ("2099-06-15_10:00", "2099-06-15_11:00", ...) and has a
+ *   unique sparse index: no two pending/confirmed bookings can share an hour. Cancelled/completed bookings
+ *   release their hours (the field is removed). This is what stops double-booking even when two people
+ *   submit overlapping times at the same moment (the second gets error 11000 → 409 "slot taken").
+ *   IMPORTANT: change status/date/time with doc.save() (not findByIdAndUpdate) so slotKeys is recomputed.
  */
 const bookingSchema = new mongoose.Schema(
   {
@@ -55,6 +57,10 @@ const bookingSchema = new mongoose.Schema(
       name: { type: String, required: [true, 'Package name is required'], trim: true },
       price: { type: Number, min: 0, default: null }, // null → custom quote; this is also the booking's "estimate"
       duration: { type: String, trim: true, default: '' },
+      durationHours: {
+        type: Number, min: 1, max: MAX_DURATION_HOURS, default: 1,
+        validate: { validator: Number.isInteger, message: 'Duration must be a whole number of hours' },
+      },
     },
     budget: { type: String, trim: true, maxlength: 40, default: '' }, // optional, e.g. "$1,500 - $2,500"
 
@@ -70,7 +76,9 @@ const bookingSchema = new mongoose.Schema(
     status: { type: String, enum: { values: BOOKING_STATUSES, message: 'Invalid status' }, default: 'pending' },
     adminNotes: { type: String, trim: true, maxlength: 1000, default: '', select: false }, // admin-only: query with .select('+adminNotes')
 
-    slotKey: { type: String, unique: true, sparse: true }, // managed automatically, see above
+    // managed automatically, see above. `default: undefined` keeps the field ABSENT (not []) when inactive,
+    // because a unique index treats every empty array as the same value.
+    slotKeys: { type: [String], default: undefined, unique: true, sparse: true },
   },
   {
     timestamps: true, // adds createdAt + updatedAt
@@ -78,7 +86,7 @@ const bookingSchema = new mongoose.Schema(
       transform(doc, ret) {
         ret.id = String(ret._id);
         ret.reference = ret.bookingId; // what the frontend calls it
-        delete ret.slotKey;
+        delete ret.slotKeys;
         delete ret.__v;
         return ret;
       },
@@ -86,9 +94,19 @@ const bookingSchema = new mongoose.Schema(
   }
 );
 
-bookingSchema.pre('validate', function lockSlot() {
+bookingSchema.pre('validate', function lockSlots() {
   const active = ACTIVE_BOOKING_STATUSES.includes(this.status);
-  this.slotKey = active && this.date && this.time ? `${this.date}_${this.time}` : undefined;
+  if (!active || !this.date || !isBookableTime(this.time)) {
+    this.slotKeys = undefined;
+    return;
+  }
+
+  const startHour = Number(this.time.slice(0, 2));
+  const hours = this.package?.durationHours || 1;
+  if (startHour + hours > BOOKING_RULES.closeHour + 1) {
+    this.invalidate('time', 'That shoot would run past closing time. Pick an earlier start.');
+  }
+  this.slotKeys = Array.from({ length: hours }, (_, i) => `${this.date}_${String(startHour + i).padStart(2, '0')}:00`);
 });
 
 bookingSchema.index({ date: 1, time: 1 });

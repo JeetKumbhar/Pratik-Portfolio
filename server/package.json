@@ -14,8 +14,9 @@
     "check:portfolio": "node scripts/checkPortfolioModel.js",
     "migrate:packages": "node scripts/migratePackages.js",
     "check:package": "node scripts/checkPackageModel.js",
-    "check:message": "node scripts/checkMessageModel.js"
-
+    "check:message": "node scripts/checkMessageModel.js",
+    "migrate:availability": "node scripts/migrateAvailability.js",
+    "check:availability": "node scripts/checkAvailability.js"
 
   },
   "keywords": [],

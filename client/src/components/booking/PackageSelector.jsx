@@ -1,4 +1,4 @@
-import { Check, Clock } from 'lucide-react';
+import { AlertCircle, Check, Clock } from 'lucide-react';
 import Badge from '../common/Badge';
 import Loader from '../common/Loader';
 import useBooking from '../../hooks/useBooking';
@@ -10,6 +10,9 @@ export default function PackageSelector({ error }) {
   const options = [...packages, CUSTOM_PACKAGE];
 
   if (packagesStatus === 'loading') return <Loader label="Loading packages" />;
+  if (packagesStatus === 'error') {
+    return <p className="form-alert" role="alert"><AlertCircle size={18} /> Couldn't load the packages. Refresh the page to try again.</p>;
+  }
 
   return (
     <div>

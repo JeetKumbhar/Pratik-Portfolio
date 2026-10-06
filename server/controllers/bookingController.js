@@ -2,7 +2,7 @@ import { Booking, Package } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { isDateKey } from '../utils/validators.js';
-import { BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES } from '../config/constants.js';
+import { BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
 import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 
@@ -12,7 +12,7 @@ const num = (v) => { const n = Number(v); return v !== '' && v !== null && Numbe
 const strArray = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const CUSTOM_PACKAGE = { slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed' };
+const CUSTOM_PACKAGE = { slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed', durationHours: CUSTOM_DURATION_HOURS };
 
 /** The package snapshot always comes from the database. A price sent by the browser is ignored. */
 async function resolvePackage(slug) {
@@ -20,7 +20,7 @@ async function resolvePackage(slug) {
   if (slug === 'custom') return CUSTOM_PACKAGE;
   const pkg = await Package.findOne({ slug: slug.toLowerCase(), active: true });
   if (!pkg) throw httpError(400, 'That package is not available. Please choose another.');
-  return { packageId: pkg._id, slug: pkg.slug, name: pkg.name, price: pkg.price, duration: pkg.duration };
+  return { packageId: pkg._id, slug: pkg.slug, name: pkg.name, price: pkg.price, duration: pkg.duration, durationHours: pkg.durationHours };
 }
 
 // accepts the frontend's names too: { package: { id } } or { packageId }
@@ -59,7 +59,7 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   if (!isBookableDate(booking.date)) throw httpError(400, 'Please choose a date after today.');
   if (!SLOT_TIMES.includes(booking.time)) throw httpError(400, 'Please choose one of the available time slots.');
-  if (!(await isSlotFree(booking.date, booking.time))) {
+  if (!(await isSlotFree(booking.date, booking.time, { durationHours: booking.package.durationHours }))) {
     throw httpError(409, 'That time slot is no longer available. Please choose another.');
   }
 
@@ -141,7 +141,7 @@ const EDITABLE = [
 export const updateBooking = asyncHandler(async (req, res) => {
   const body = req.body ?? {};
   const booking = await findBooking(req.params.id, { withNotes: true });
-  const before = { status: booking.status, date: booking.date, time: booking.time };
+  const before = { status: booking.status, date: booking.date, time: booking.time, hours: booking.package?.durationHours };
 
   let touched = false;
   EDITABLE.forEach((key) => {
@@ -151,6 +151,10 @@ export const updateBooking = asyncHandler(async (req, res) => {
     booking.package = await resolvePackage(packageSlugFrom(body));
     touched = true;
   }
+  if ('durationHours' in body) {
+    booking.set('package.durationHours', body.durationHours); // e.g. extend a custom-quote shoot to 4 hours
+    touched = true;
+  }
   if (!touched) throw httpError(400, 'Nothing to update. Editable fields: status, adminNotes, date, time, package, and the customer/shoot details.');
 
   await booking.validate();
@@ -158,9 +162,10 @@ export const updateBooking = asyncHandler(async (req, res) => {
   // Only look for conflicts when the booking will hold a slot AND the slot or status changed
   const slotChanged = booking.date !== before.date || booking.time !== before.time;
   const reactivated = !ACTIVE_BOOKING_STATUSES.includes(before.status) && ACTIVE_BOOKING_STATUSES.includes(booking.status);
-  if (ACTIVE_BOOKING_STATUSES.includes(booking.status) && (slotChanged || reactivated)) {
+  const hoursChanged = booking.package.durationHours !== before.hours;
+  if (ACTIVE_BOOKING_STATUSES.includes(booking.status) && (slotChanged || reactivated || hoursChanged)) {
     if (!SLOT_TIMES.includes(booking.time)) throw httpError(400, 'Time must be one of the hourly slots.');
-    const free = await isSlotFree(booking.date, booking.time, { excludeBookingId: booking._id, enforceDateRules: false });
+    const free = await isSlotFree(booking.date, booking.time, { excludeBookingId: booking._id, enforceDateRules: false, durationHours: booking.package.durationHours });
     if (!free) throw httpError(409, 'That time slot is already booked or blocked.');
   }
 

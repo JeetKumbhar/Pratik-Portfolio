@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import { PACKAGE_CATEGORIES } from '../config/constants.js';
+import { PACKAGE_CATEGORIES, MAX_DURATION_HOURS } from '../config/constants.js';
+import { parseDurationHours } from '../utils/duration.js';
 
 const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -14,6 +15,8 @@ const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-'
  * - `active`    false = hidden from the public site (and from new bookings), but kept for old bookings.
  * - `slug`      the stable id used in links (/booking?package=standard). Generated from the name once,
  *               then locked (immutable) so renaming a package never breaks existing links or bookings.
+ * - `durationHours`  whole hours the shoot lasts. The booking calendar blocks this many hours in a row.
+ *               Read from `duration` ("Up to 6 hours" gives 6) when not set; otherwise the admin enters it.
  * - `popular`   shows the "Most popular" badge.
  * - `sortOrder` lower shows first.
  *
@@ -36,6 +39,13 @@ const packageSchema = new mongoose.Schema(
       max: [1000000, 'Price is too high'],
     },
     duration: { type: String, required: [true, 'Duration is required'], trim: true, maxlength: [40, 'Duration must be 40 characters or fewer'] }, // "2 hours"
+    durationHours: {
+      type: Number,
+      required: [true, 'Duration in whole hours is required (the calendar blocks this many hours)'],
+      min: [1, 'At least 1 hour'],
+      max: [MAX_DURATION_HOURS, `At most ${MAX_DURATION_HOURS} hours`],
+      validate: { validator: Number.isInteger, message: 'Duration must be a whole number of hours' },
+    },
     features: {
       type: [{ type: String, trim: true, maxlength: [100, 'A feature must be 100 characters or fewer'] }],
       default: [],
@@ -60,8 +70,9 @@ const packageSchema = new mongoose.Schema(
   }
 );
 
-packageSchema.pre('validate', function makeSlug() {
+packageSchema.pre('validate', function prepare() {
   if (!this.slug && this.name) this.slug = slugify(this.name);
+  if (this.durationHours == null && this.duration) this.durationHours = parseDurationHours(this.duration);
 });
 
 export default mongoose.model('Package', packageSchema);

@@ -31,3 +31,8 @@ export const BLOCKED_DATE_LABELS = {
 
 /** Which kind of shoot a package is for. 'general' = offered for every kind of shoot. */
 export const PACKAGE_CATEGORIES = ['general', ...SHOOT_TYPES];
+
+/** Shoot lengths are whole hours; each hour is one calendar slot. */
+export const MAX_DURATION_HOURS = 12;
+/** "Not sure yet / custom quote" bookings block this many hours until the admin adjusts them. */
+export const CUSTOM_DURATION_HOURS = 2;

@@ -6,8 +6,9 @@ import { submitBooking } from '../../services/bookingService';
 import { LOCATIONS, SHOOT_TYPES, formatDate, formatTime, labelOf, money } from './bookingData';
 
 export default function BookingReview() {
-  const { values, goTo, back, selectedPackage, setSubmission, validateAll } = useBooking();
+  const { values, update, goTo, back, selectedPackage, setSubmission, validateAll } = useBooking();
   const [state, setState] = useState('idle'); // idle | submitting | error
+  const [errorMessage, setErrorMessage] = useState('');
 
   const rows = [
     { icon: User, label: 'Details', step: 1, main: values.name, sub: `${values.email} · ${values.phone}` },
@@ -35,7 +36,16 @@ export default function BookingReview() {
         package: selectedPackage && { id: selectedPackage.id, name: selectedPackage.name, price: selectedPackage.price, duration: selectedPackage.duration },
       });
       setSubmission({ reference: result.reference, name: values.name, email: values.email, date: values.date, time: values.time, shootType: values.shootType });
-    } catch {
+    } catch (err) {
+      if (err.status === 409) {
+        // Someone else took the slot while this person was filling in the form: send them back to pick another
+        update({ time: '' });
+        setState('idle');
+        goTo(3, [err.message]);
+        return;
+      }
+      const firstFieldError = err.errors && Object.values(err.errors)[0];
+      setErrorMessage(firstFieldError || err.message || "We couldn't send your request. Please try again.");
       setState('error');
     }
   };
@@ -70,7 +80,7 @@ export default function BookingReview() {
 
       <p className="step__note"><Info size={14} /> This is an estimated price. Final price may vary based on specific requirements.</p>
 
-      {state === 'error' && <p className="form-alert" role="alert"><AlertCircle size={18} /> We couldn't send your request. Please try again.</p>}
+      {state === 'error' && <p className="form-alert" role="alert"><AlertCircle size={18} /> {errorMessage}</p>}
 
       <div className="step-nav">
         <Button variant="ghost" size="lg" icon={<ArrowLeft size={16} />} onClick={back} disabled={state === 'submitting'}>Previous</Button>

@@ -1,4 +1,3 @@
-
 /**
  * Checks the Package model.
  *   npm run check:package            → validation rules only (no database)
@@ -32,6 +31,7 @@ async function validationTests() {
   check("category defaults to 'general'", good.category === 'general');
   check('active defaults to true, popular to false', good.active === true && good.popular === false);
   check('features are trimmed', good.features[1] === 'Online gallery');
+  check('durationHours is read from the duration text ("3 hours" gives 3)', good.durationHours === 3);
 
   const json = good.toJSON();
   check('JSON: id equals the slug (frontend links keep working)', json.id === 'wedding-deluxe');
@@ -49,6 +49,7 @@ async function validationTests() {
   await rejects('rejects a negative price', { price: -5 }, 'price');
   await rejects('rejects an absurd price', { price: 5000000 }, 'price');
   await rejects('rejects a missing duration', { duration: '' }, 'duration');
+  await rejects('rejects a duration the calendar cannot read ("Full day")', { duration: 'Full day' }, 'durationHours');
   await rejects('rejects an unknown category', { category: 'spa' }, 'category');
   await rejects('rejects more than 15 features', { features: Array.from({ length: 16 }, (_, i) => `f${i}`) }, 'features');
   await rejects('rejects a feature over 100 characters', { features: ['x'.repeat(101)] }, 'features.0');

@@ -26,7 +26,7 @@ export const errorHandler = (err, req, res, next) => {
     // Unique index violation
     status = 409;
     const field = Object.keys(err.keyValue || {})[0];
-    message = field === 'slotKey'
+    message = (field === 'slotKey' || field === 'slotKeys')
       ? 'That time slot has just been taken. Please choose another.'
       : `${field || 'Value'} already exists`;
   } else if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {

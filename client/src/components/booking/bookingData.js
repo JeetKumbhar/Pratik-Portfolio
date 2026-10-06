@@ -34,7 +34,7 @@ export const REQUESTS_MAX = 500;
 
 /** Shown as the last option in the package picker */
 export const CUSTOM_PACKAGE = {
-  id: 'custom', name: 'Not sure yet', tagline: "I'll send you a custom quote", price: null, duration: 'To be discussed', features: [], popular: false,
+  id: 'custom', name: 'Not sure yet', tagline: "I'll send you a custom quote", price: null, duration: 'To be discussed', durationHours: 2, features: [], popular: false, // keep durationHours equal to CUSTOM_DURATION_HOURS on the server
 };
 
 export const TRUST = [

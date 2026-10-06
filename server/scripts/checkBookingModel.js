@@ -32,11 +32,15 @@ async function validationTests() {
   check('a complete booking is valid', true);
   check('bookingId is generated (AM-XXXXXX)', /^AM-[A-HJKMNP-Z2-9]{6}$/.test(good.bookingId));
   check('status defaults to pending', good.status === 'pending');
-  check('pending booking locks its slot', good.slotKey === `${FUTURE}_14:00`);
+  check('pending booking locks its slot', good.slotKeys.join() === `${FUTURE}_14:00`);
 
   const cancelled = new Booking({ ...valid(), status: 'cancelled' });
   await cancelled.validate();
-  check('cancelled booking does NOT lock the slot', cancelled.slotKey === undefined);
+  check('cancelled booking does NOT lock the slot', cancelled.slotKeys === undefined);
+
+  const long = new Booking({ ...valid(), package: { ...valid().package, durationHours: 3 } });
+  await long.validate();
+  check('a 3-hour booking locks 3 hours (14:00, 15:00, 16:00)', long.slotKeys.join() === `${FUTURE}_14:00,${FUTURE}_15:00,${FUTURE}_16:00`);
 
   const rejects = async (label, patch, path) => {
     try {
@@ -56,6 +60,7 @@ async function validationTests() {
   await rejects('rejects more than 3 styles', { styles: ['Natural', 'Moody', 'Minimal', 'Editorial'] }, 'styles');
   await rejects('rejects a missing package', { package: undefined }, 'package.slug');
   await rejects('rejects a missing name', { name: '' }, 'name');
+  await rejects('rejects a shoot that would run past closing time', { time: '21:00', package: { ...valid().package, durationHours: 3 } }, 'time');
 }
 
 async function databaseTests() {
@@ -76,13 +81,13 @@ async function databaseTests() {
     first.status = 'cancelled';
     await first.save();
     const reloaded = await Booking.findById(first._id).lean();
-    check('cancelling releases the slot', reloaded.slotKey === undefined);
+    check('cancelling releases the slot', reloaded.slotKeys === undefined);
 
     const again = await Booking.create(valid());
     check('the slot can be booked again after a cancellation', Boolean(again._id));
 
     const json = again.toJSON();
-    check('JSON includes id + reference and hides slotKey', Boolean(json.id) && json.reference === again.bookingId && !('slotKey' in json));
+    check('JSON includes id + reference and hides slotKeys', Boolean(json.id) && json.reference === again.bookingId && !('slotKeys' in json));
   } finally {
     await cleanup();
     await mongoose.connection.close();

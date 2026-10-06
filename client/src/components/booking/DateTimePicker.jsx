@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { AlertCircle, Check, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import Loader from '../common/Loader';
 import StepNav from './StepNav';
 import useBooking from '../../hooks/useBooking';
@@ -13,6 +13,8 @@ const STATUS_TEXT = { available: 'available', limited: 'limited availability', u
 
 export default function DateTimePicker() {
   const { values, update, next, selectedPackage } = useBooking();
+  // A longer package needs more free hours in a row, so availability depends on it
+  const durationHours = selectedPackage?.durationHours ?? 1;
   const [errors, setErrors] = useState({});
 
   const today = useMemo(() => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }, []);
@@ -21,23 +23,40 @@ export default function DateTimePicker() {
 
   const [availability, setAvailability] = useState(null); // null while loading
   const [slots, setSlots] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [retry, setRetry] = useState(0);
 
-  // Month availability (swap for a backend call in bookingService later)
+  // Month availability from the backend (bookings + blocked dates)
   useEffect(() => {
     let cancelled = false;
     setAvailability(null);
-    getAvailability(view.year, view.month).then((a) => { if (!cancelled) setAvailability(a); });
+    setLoadError(null);
+    getAvailability(view.year, view.month, durationHours)
+      .then((a) => {
+        if (cancelled) return;
+        setAvailability(a);
+        // The package changed and the chosen day no longer fits: clear it so it can't be submitted
+        if (values.date && a[values.date] === 'unavailable') update({ date: '', time: '' });
+      })
+      .catch((e) => { if (!cancelled) setLoadError(e.message); });
     return () => { cancelled = true; };
-  }, [view]);
+  }, [view, durationHours, retry]);
 
-  // Time slots for the chosen date
+  // Start times for the chosen date
   useEffect(() => {
     if (!values.date) { setSlots(null); return undefined; }
     let cancelled = false;
     setSlots(null);
-    getTimeSlots(values.date).then((s) => { if (!cancelled) setSlots(s); });
+    getTimeSlots(values.date, durationHours)
+      .then((s) => {
+        if (cancelled) return;
+        setSlots(s);
+        // A previously chosen time that is no longer free (taken, or too short for this package) is dropped
+        if (values.time && !s.some((x) => x.time === values.time && x.available)) update({ time: '' });
+      })
+      .catch((e) => { if (!cancelled) setLoadError(e.message); });
     return () => { cancelled = true; };
-  }, [values.date]);
+  }, [values.date, durationHours, retry]);
 
   const firstWeekday = new Date(view.year, view.month, 1).getDay();
   const daysInMonth = new Date(view.year, view.month + 1, 0).getDate();
@@ -62,6 +81,13 @@ export default function DateTimePicker() {
 
   return (
     <div className="step">
+      {loadError && (
+        <p className="form-alert" role="alert">
+          <AlertCircle size={18} /> {loadError}{' '}
+          <button type="button" className="review__edit" onClick={() => setRetry((r) => r + 1)}>Try again</button>
+        </p>
+      )}
+
       <div className="dt">
         {/* ---------- Calendar ---------- */}
         <section aria-labelledby="dt-date">
@@ -129,7 +155,7 @@ export default function DateTimePicker() {
           )}
           {errors.time && <p className="field__error" role="alert">{errors.time}</p>}
 
-          <p className="dt__note"><Clock size={15} /> Standard shoot duration: {selectedPackage?.duration ?? 'up to 2 hours'}.</p>
+          <p className="dt__note"><Clock size={15} /> Your shoot lasts {selectedPackage?.duration ?? 'up to 2 hours'}. Only start times with enough free time are shown.</p>
         </section>
       </div>
 
