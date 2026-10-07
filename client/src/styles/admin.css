@@ -15,14 +15,24 @@
 .admin-sidebar__top { display: flex; align-items: center; justify-content: space-between; }
 .admin-sidebar__top .logo__name { font-size: 15px; letter-spacing: 0.16em; }
 .admin-sidebar__close { background: none; border: 0; padding: 4px; color: var(--text-muted); display: grid; }
-.admin-sidebar__nav { display: flex; flex-direction: column; gap: 4px; }
+.admin-sidebar__nav { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow-y: auto; } /* scrolls on short screens */
 .admin-sidebar__link {
   display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-md);
   font-size: 14px; color: var(--text-muted); transition: background 0.2s, color 0.2s;
+  width: 100%; background: none; border: 0; text-align: left; font-family: inherit; cursor: pointer; /* also styles the Logout <button> */
 }
 .admin-sidebar__link:hover { color: var(--text); background: var(--surface-2); }
 .admin-sidebar__link.is-active { color: var(--gold); background: var(--gold-soft); }
-.admin-sidebar__site { margin-top: auto; border-top: 1px solid var(--border); border-radius: 0; padding-top: 18px; }
+.admin-sidebar__footer { display: flex; flex-direction: column; gap: 4px; padding-top: 14px; border-top: 1px solid var(--border); }
+.admin-sidebar__logout:hover { color: var(--danger); background: rgba(229, 100, 90, 0.1); }
+
+/* Keyboard users: first Tab stop jumps past the sidebar */
+.skip-link {
+  position: absolute; left: -9999px; top: 12px; z-index: 300; padding: 10px 16px;
+  background: var(--gold); color: #17120a; border-radius: var(--radius-sm); font-size: 14px;
+}
+.skip-link:focus { left: 12px; }
+.admin__content:focus { outline: none; }
 
 /* Header */
 .admin-header {

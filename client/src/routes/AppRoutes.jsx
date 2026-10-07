@@ -39,6 +39,8 @@ export default function AppRoutes() {
         />
         <Route path="login" element={<Navigate to="/admin/login" replace />} />
         <Route path="*" element={<NotFound />} />
+        <Route path="calendar" element={<Placeholder title="Calendar" />} />
+        <Route path="settings" element={<Placeholder title="Settings" />} />
       </Route>
 
       {/* Admin sign-in: standalone page */}
