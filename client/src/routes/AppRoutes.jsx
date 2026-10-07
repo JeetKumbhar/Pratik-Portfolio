@@ -10,6 +10,7 @@ import Contact from "../pages/Contact/Contact";
 import Booking from "../pages/Booking/Booking";
 import AdminLogin from "../pages/Auth/AdminLogin";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import Dashboard from "../pages/Admin/Dashboard";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -39,17 +40,23 @@ export default function AppRoutes() {
         />
         <Route path="login" element={<Navigate to="/admin/login" replace />} />
         <Route path="*" element={<NotFound />} />
-        <Route path="calendar" element={<Placeholder title="Calendar" />} />
-        <Route path="settings" element={<Placeholder title="Settings" />} />
       </Route>
 
-      {/* Admin sign-in: standalone page */}
+      {/* ---------- Admin sign-in: standalone page ---------- */}
       <Route path="admin/login" element={<AdminLogin />} />
 
-      {/* Admin: only for a verified admin session */}
+      {/* ---------- Admin: only for a verified admin session ---------- */}
       <Route element={<ProtectedRoute />}>
         <Route path="admin" element={<AdminLayout />}>
-          {/* your existing admin child routes stay exactly as they are */}
+          <Route index element={<Dashboard />} />
+          <Route path="bookings" element={<Placeholder title="Bookings" />} />
+          <Route path="calendar" element={<Placeholder title="Calendar" />} />
+          <Route path="clients" element={<Placeholder title="Clients" />} />
+          <Route path="portfolio" element={<Placeholder title="Portfolio" />} />
+          <Route path="packages" element={<Placeholder title="Packages" />} />
+          <Route path="messages" element={<Placeholder title="Messages" />} />
+          <Route path="settings" element={<Placeholder title="Settings" />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Route>
     </Routes>

@@ -5,6 +5,7 @@ import { isDateKey } from '../utils/validators.js';
 import { BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
 import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
+import { computeBookingStats } from '../utils/bookingStats.js';
 
 // ---------------------------------------------------------------- helpers
 const str = (v) => (typeof v === 'string' ? v : undefined);
@@ -182,4 +183,10 @@ export const deleteBooking = asyncHandler(async (req, res) => {
   const booking = await findBooking(req.params.id);
   await booking.deleteOne();
   res.json({ success: true, message: `Booking ${booking.bookingId} deleted` });
+});
+
+// ---------------------------------------------------------------- GET /api/bookings/stats  (ADMIN)
+// Dashboard numbers (totals, upcoming, pending, revenue, next shoots), calculated by MongoDB
+export const getBookingStats = asyncHandler(async (req, res) => {
+  res.json({ success: true, data: await computeBookingStats() });
 });

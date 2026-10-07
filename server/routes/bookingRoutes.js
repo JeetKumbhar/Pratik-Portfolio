@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
-  createBooking, getBookings, getBooking, updateBooking, deleteBooking,
+  createBooking, getBookings, getBookingStats, getBooking, updateBooking, deleteBooking,
 } from '../controllers/bookingController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
@@ -22,6 +22,7 @@ router.post('/', createLimiter, createBooking);
 // ---------- ADMIN ONLY (everything below needs a valid admin token) ----------
 router.use(protect, adminOnly);
 router.get('/', getBookings);
+router.get('/stats', getBookingStats); // must stay above '/:id', or "stats" would be treated as an id
 router.get('/:id', getBooking);
 router.patch('/:id', updateBooking);
 router.delete('/:id', deleteBooking);

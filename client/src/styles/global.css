@@ -12,6 +12,7 @@
 @import './auth.css';
 @import './responsive.css';
 @import './motion.css';
+@import './dashboard.css';
 
 
 *, *::before, *::after { box-sizing: border-box; }
