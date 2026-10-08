@@ -5,10 +5,27 @@ import api from './api';
 /** GET /api/bookings/stats → { total, upcoming, pending, confirmed, completed, cancelled, revenue:{total,thisMonth}, next:[…] } */
 export const getBookingStats = (token) => api.get('/bookings/stats', { token }).then((r) => r.data);
 
-/** GET /api/bookings → the newest bookings first */
+/** GET /api/bookings → the newest bookings first (dashboard) */
 export const getRecentBookings = (token, limit = 6) =>
   api.get('/bookings', { token, params: { limit, sort: '-createdAt' } }).then((r) => r.data);
 
 /** GET /api/availability/admin/calendar → one entry per day: { date, label, bookings:[…], blocks:[…] }   (month is 1 to 12) */
 export const getAdminCalendar = (token, year, month) =>
   api.get('/availability/admin/calendar', { token, params: { year, month } }).then((r) => r.data);
+
+// ---------------------------------------------------------------- booking management
+/**
+ * GET /api/bookings with filters → the WHOLE response { total, page, pages, count, data:[…] }
+ * params: { status, shootType, search, sort, page, limit }   (leave out anything empty)
+ */
+export const getBookings = (token, params) => api.get('/bookings', { token, params });
+
+/** GET /api/bookings/:reference → one booking, including the private admin notes */
+export const getBooking = (token, reference) => api.get(`/bookings/${encodeURIComponent(reference)}`, { token }).then((r) => r.data);
+
+/** PATCH /api/bookings/:reference → the updated booking. changes: { status } | { adminNotes } | { date, time } … */
+export const updateBooking = (token, reference, changes) =>
+  api.patch(`/bookings/${encodeURIComponent(reference)}`, changes, { token }).then((r) => r.data);
+
+/** DELETE /api/bookings/:reference → permanent */
+export const deleteBooking = (token, reference) => api.delete(`/bookings/${encodeURIComponent(reference)}`, { token });

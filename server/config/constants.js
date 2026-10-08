@@ -36,3 +36,17 @@ export const PACKAGE_CATEGORIES = ['general', ...SHOOT_TYPES];
 export const MAX_DURATION_HOURS = 12;
 /** "Not sure yet / custom quote" bookings block this many hours until the admin adjusts them. */
 export const CUSTOM_DURATION_HOURS = 2;
+
+/**
+ * Allowed booking status changes (the API enforces this; the admin screens mirror it in utils/bookingStatus.js).
+ *   pending   -> confirmed | cancelled
+ *   confirmed -> completed | cancelled
+ *   completed -> (final)
+ *   cancelled -> pending   ("reopen": only works while the time slot is still free)
+ */
+export const BOOKING_STATUS_FLOW = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: ['pending'],
+};

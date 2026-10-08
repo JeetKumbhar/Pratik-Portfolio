@@ -11,6 +11,7 @@ import Booking from "../pages/Booking/Booking";
 import AdminLogin from "../pages/Auth/AdminLogin";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import Dashboard from "../pages/Admin/Dashboard";
+import Bookings from "../pages/Admin/Bookings";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -49,7 +50,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="bookings" element={<Placeholder title="Bookings" />} />
+          <Route path="bookings" element={<Bookings />} />
           <Route path="calendar" element={<Placeholder title="Calendar" />} />
           <Route path="clients" element={<Placeholder title="Clients" />} />
           <Route path="portfolio" element={<Placeholder title="Portfolio" />} />

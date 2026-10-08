@@ -51,7 +51,7 @@ export function buildNotifications({ stats, recent = [], now = new Date() }) {
       id: `shoot-${b.reference}`, kind: 'shoot',
       title: `${dayLabel(b.date, now)} at ${fmtTime(b.time)}: ${b.name}`,
       detail: `${b.shootType.replace('-', ' ')} shoot${b.status === 'pending' ? ' (not confirmed yet)' : ''}`,
-      to: `/admin/bookings?search=${b.reference}`,
+      to: `/admin/bookings?view=${b.reference}`,
     });
   });
 
@@ -63,7 +63,7 @@ export function buildNotifications({ stats, recent = [], now = new Date() }) {
         id: `new-${b.reference}`, kind: 'new',
         title: `New request from ${b.name}`,
         detail: `${b.reference} · ${timeAgo(b.createdAt, now)}`,
-        to: `/admin/bookings?search=${b.reference}`,
+        to: `/admin/bookings?view=${b.reference}`,
       });
     });
 

@@ -13,6 +13,7 @@
 @import './responsive.css';
 @import './motion.css';
 @import './dashboard.css';
+@import './admin-bookings.css';
 
 
 *, *::before, *::after { box-sizing: border-box; }

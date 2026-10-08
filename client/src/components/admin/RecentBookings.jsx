@@ -33,7 +33,7 @@ export default function RecentBookings({ bookings = [], loading, error, onRetry 
         <ul className="recent">
           {bookings.map((b) => (
             <li key={b.reference}>
-              <Link to={`/admin/bookings?search=${b.reference}`} className="recent__row">
+              <Link to={`/admin/bookings?view=${b.reference}`} className="recent__row">
                 <span className="recent__who">
                   <strong>{b.name}</strong>
                   <small>{b.reference}</small>

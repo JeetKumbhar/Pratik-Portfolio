@@ -2,7 +2,7 @@ import { Booking, Package } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { isDateKey } from '../utils/validators.js';
-import { BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
+import { BOOKING_STATUSES, BOOKING_STATUS_FLOW, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
 import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 import { computeBookingStats } from '../utils/bookingStats.js';
@@ -157,6 +157,14 @@ export const updateBooking = asyncHandler(async (req, res) => {
     touched = true;
   }
   if (!touched) throw httpError(400, 'Nothing to update. Editable fields: status, adminNotes, date, time, package, and the customer/shoot details.');
+
+  // Status changes must follow the flow (see BOOKING_STATUS_FLOW): a completed booking is final, a pending one cannot jump to completed, ...
+  if (booking.status !== before.status) {
+    const allowed = BOOKING_STATUS_FLOW[before.status] ?? [];
+    if (!allowed.includes(booking.status)) {
+      throw httpError(400, `A ${before.status} booking cannot be changed to ${booking.status}.${allowed.length ? ` Allowed: ${allowed.join(', ')}.` : ' It is final.'}`);
+    }
+  }
 
   await booking.validate();
 
