@@ -29,3 +29,14 @@ export const updateBooking = (token, reference, changes) =>
 
 /** DELETE /api/bookings/:reference → permanent */
 export const deleteBooking = (token, reference) => api.delete(`/bookings/${encodeURIComponent(reference)}`, { token });
+
+// ---------------------------------------------------------------- blocked dates (calendar)
+/**
+ * POST /api/blocked-dates → { created, skipped, conflicts, data }
+ * payload: { type, startDate, endDate?, blockedTimes?, reason?, note?, force? }
+ * Throws ApiError with status 409 and err.data.conflicts = [{ reference, name, date, time, status }] when bookings are in the way.
+ */
+export const createBlockedDates = (token, payload) => api.post('/blocked-dates', payload, { token });
+
+/** DELETE /api/blocked-dates/:id → the day (or hours) become bookable again */
+export const deleteBlockedDate = (token, id) => api.delete(`/blocked-dates/${encodeURIComponent(id)}`, { token });

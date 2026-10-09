@@ -1,0 +1,53 @@
+/* ===== Admin calendar: event colours =====
+   Booking = gold · Editing = purple · Vacation = green · Personal day = pink · Offline booking = blue · Other = grey */
+.ev--booking { --ev: #e6aa4c; --ev-soft: rgba(230, 170, 76, 0.16); }
+.ev--editing { --ev: #a98bf0; --ev-soft: rgba(169, 139, 240, 0.16); }
+.ev--vacation { --ev: #4fc3a1; --ev-soft: rgba(79, 195, 161, 0.16); }
+.ev--personal { --ev: #f08bb4; --ev-soft: rgba(240, 139, 180, 0.16); }
+.ev--offline_booking { --ev: #6ea8f0; --ev-soft: rgba(110, 168, 240, 0.16); }
+.ev--other { --ev: #8f9aa8; --ev-soft: rgba(143, 154, 168, 0.16); }
+
+.acal__dot { background: var(--ev, var(--text-muted)); }
+.acal__day.is-blocked { background: var(--ev-soft); }
+.acal__day.is-blocked.is-selected { border-color: var(--ev); }
+
+/* ===== Calendar events ===== */
+.cev { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 12px; background: var(--ev-soft); border-left: 3px solid var(--ev); border-radius: var(--radius-md); }
+.cev__main { min-width: 0; }
+.cev__title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14px; font-weight: 500; }
+.cev__title a { color: var(--text); border-bottom: 1px solid var(--ev); }
+.cev__title a:hover { color: var(--ev); }
+.cev__sub { margin-top: 2px; font-size: 13px; color: var(--text-muted); overflow-wrap: anywhere; }
+.cev__sub small { font-size: 12px; }
+.cev__note { margin-top: 6px; font-size: 12px; color: var(--text-muted); white-space: pre-wrap; }
+.cev__remove { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; background: none; border: 0; border-radius: 50%; color: var(--text-muted); }
+.cev__remove:hover { color: var(--danger); background: rgba(229, 100, 90, 0.12); }
+.cev-chip { display: block; overflow: hidden; padding: 2px 6px; border-left: 3px solid var(--ev); border-radius: 3px; background: var(--ev-soft); font-size: 11px; line-height: 1.4; text-align: left; white-space: nowrap; text-overflow: ellipsis; color: var(--text); }
+
+/* ===== Full calendar (Calendar page) ===== */
+.cal-page { display: flex; flex-direction: column; gap: 16px; }
+.cal-notice { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(95, 184, 119, 0.1); border: 1px solid var(--success); border-radius: var(--radius-md); font-size: 14px; color: var(--success); }
+.cal-notice button { margin-left: auto; background: none; border: 0; font-size: 20px; line-height: 1; color: inherit; }
+.acal__detail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.acal__chips { display: none; }
+.acal__more { font-size: 11px; color: var(--text-muted); text-align: left; }
+@media (min-width: 760px) {
+  .acal--full { padding: 20px 24px 24px; }
+  .acal--full .acal__day { aspect-ratio: auto; min-height: 108px; align-items: stretch; justify-content: flex-start; gap: 4px; padding: 6px; text-align: left; }
+  .acal--full .acal__num { font-size: 13px; }
+  .acal--full .acal__dots { display: none; }
+  .acal--full .acal__chips { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .acal--full .acal__legend { gap: 22px; }
+}
+
+/* ===== Block dates dialog ===== */
+.block-form { display: flex; flex-direction: column; gap: 18px; }
+.block-form__dates { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 520px) { .block-form__dates { grid-template-columns: 1fr 1fr; } }
+.block-form__when { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.block-form__toggle, .block-form__hours { display: flex; flex-wrap: wrap; gap: 8px; }
+.block-form__hours .chip { font-size: 13px; padding: 6px 12px; }
+.block-form__conflicts { padding: 14px 16px; background: rgba(229, 100, 90, 0.08); border: 1px solid var(--danger); border-radius: var(--radius-md); font-size: 14px; }
+.block-form__conflicts p { display: flex; align-items: center; gap: 8px; }
+.block-form__conflicts ul { margin: 8px 0; padding-left: 22px; list-style: disc; color: var(--text-muted); }
+.block-form__conflicts p:last-child { color: var(--text-muted); font-size: 13px; }

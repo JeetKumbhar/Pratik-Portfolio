@@ -109,8 +109,8 @@ export function buildAdminMonth(year, monthIndex, bookings, blocks, durationHour
       date: key,
       status,
       label,
-      bookings: dayBookings.map((b) => ({ reference: b.bookingId, name: b.name, time: b.time, hours: hoursOf(b) })),
-      blocks: dayBlocks.map((b) => ({ type: b.type, reason: b.reason, allDay: !b.blockedTimes?.length, blockedTimes: b.blockedTimes || [] })),
+      bookings: dayBookings.map((b) => ({ reference: b.bookingId, name: b.name, shootType: b.shootType, status: b.status, time: b.time, hours: hoursOf(b) })),
+      blocks: dayBlocks.map((b) => ({ id: String(b._id), type: b.type, reason: b.reason, note: b.note ?? '', allDay: !b.blockedTimes?.length, blockedTimes: b.blockedTimes || [] })),
     });
   }
   return result;
@@ -161,8 +161,8 @@ export async function getMonthAvailability(year, monthIndex, durationHours = 1) 
 
 export async function getAdminMonth(year, monthIndex, durationHours = 1) {
   const [bookings, blocks] = await loadMonth(year, monthIndex, {
-    booking: 'bookingId name date time package.durationHours',
-    block: 'date type reason blockedTimes',
+    booking: 'bookingId name date time shootType status package.durationHours',
+    block: 'date type reason note blockedTimes',
   });
   return buildAdminMonth(year, monthIndex, bookings, blocks, durationHours);
 }

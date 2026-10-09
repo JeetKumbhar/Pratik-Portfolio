@@ -14,7 +14,7 @@
 @import './motion.css';
 @import './dashboard.css';
 @import './admin-bookings.css';
-
+@import './admin-calendar.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

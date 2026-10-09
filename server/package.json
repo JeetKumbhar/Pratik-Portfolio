@@ -18,7 +18,8 @@
     "migrate:availability": "node scripts/migrateAvailability.js",
     "check:availability": "node scripts/checkAvailability.js",
     "check:stats": "node scripts/checkBookingStats.js",
-    "test:bookings": "node scripts/testBookingManagement.js"
+    "test:bookings": "node scripts/testBookingManagement.js",
+    "test:blocks": "node scripts/testBlockedDates.js"
 
   },
   "keywords": [],

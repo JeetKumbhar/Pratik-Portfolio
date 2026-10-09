@@ -1,31 +1,47 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import Button from '../common/Button';
+import ConfirmModal from '../common/ConfirmModal';
+import CalendarEvent from './CalendarEvent';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
-import { getAdminCalendar } from '../../services/adminService';
-import { formatDate, formatTime, toKey } from '../booking/bookingData';
+import { deleteBlockedDate, getAdminCalendar } from '../../services/adminService';
+import { SHOOT_TYPES, formatDate, labelOf, toKey } from '../booking/bookingData';
+import { BLOCK_TYPES, EVENT_TYPES, buildEvents, typesOf } from '../../utils/calendarEvents';
 import { cx } from '../../utils/helpers';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const BLOCK_LABELS = { offline_booking: 'Offline booking', editing: 'Editing', vacation: 'Vacation', personal: 'Personal', other: 'Other' };
 const pad = (n) => String(n).padStart(2, '0');
+const shootLabel = (type) => labelOf(SHOOT_TYPES, type) || type;
 
-/** Month overview from GET /api/availability/admin/calendar: gold dot = bookings, blue dot = blocked time. */
-export default function AdminCalendar({ refreshKey = 0 }) {
+/**
+ * Month calendar from GET /api/availability/admin/calendar.
+ *   variant="compact"  dashboard: coloured dots + the selected day's events
+ *   variant="full"     Calendar page: event labels inside the days, "Block dates" and removing blocks
+ * onBlockDay(dateKey) is called when you ask to block a day (the page opens <BlockedDayModal />).
+ */
+export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onBlockDay, onChanged }) {
+  const full = variant === 'full';
   const { token } = useAuth();
   const today = new Date();
   const todayKey = toKey(today);
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selected, setSelected] = useState(todayKey);
+  const [toRemove, setToRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState('');
 
   const { data, loading, error, reload } = useFetch(
     () => getAdminCalendar(token, view.year, view.month + 1),
     [token, view.year, view.month, refreshKey]
   );
 
-  const days = data ?? [];
-  const byDate = Object.fromEntries(days.map((d) => [d.date, d]));
+  const byDate = useMemo(
+    () => Object.fromEntries((data ?? []).map((d) => [d.date, { ...d, events: buildEvents(d, shootLabel) }])),
+    [data]
+  );
+
   const firstWeekday = new Date(view.year, view.month, 1).getDay();
   const daysInMonth = new Date(view.year, view.month + 1, 0).getDate();
   const monthLabel = new Date(view.year, view.month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -39,14 +55,35 @@ export default function AdminCalendar({ refreshKey = 0 }) {
   });
   const goToday = () => { setView({ year: today.getFullYear(), month: today.getMonth() }); setSelected(todayKey); };
 
+  const confirmRemove = async () => {
+    setRemoving(true);
+    setRemoveError('');
+    try {
+      await deleteBlockedDate(token, toRemove.blockId);
+      reload();
+      onChanged?.();
+    } catch (err) {
+      setRemoveError(err.message);
+    } finally {
+      setRemoving(false);
+      setToRemove(null);
+    }
+  };
+
+  const legend = full ? ['booking', ...BLOCK_TYPES] : ['booking', 'blocked'];
+
   return (
     <section className="panel" aria-labelledby="acal-title">
       <header className="panel__head">
         <h2 id="acal-title" className="panel__title">Calendar</h2>
-        <Link to="/admin/calendar" className="panel__link">Manage <ArrowRight size={14} /></Link>
+        {full ? (
+          <Button size="sm" icon={<Plus size={15} />} onClick={() => onBlockDay?.(activeKey && activeKey >= todayKey ? activeKey : todayKey)}>Block dates</Button>
+        ) : (
+          <Link to="/admin/calendar" className="panel__link">Manage <ArrowRight size={14} /></Link>
+        )}
       </header>
 
-      <div className="acal">
+      <div className={cx('acal', full && 'acal--full')}>
         <div className="acal__nav">
           <button type="button" onClick={() => shift(-1)} aria-label="Previous month"><ChevronLeft size={18} /></button>
           <span className="acal__month" aria-live="polite">{monthLabel}</span>
@@ -59,58 +96,72 @@ export default function AdminCalendar({ refreshKey = 0 }) {
           {Array.from({ length: firstWeekday }, (_, i) => <span key={`b${i}`} />)}
           {Array.from({ length: daysInMonth }, (_, i) => {
             const key = `${prefix}${pad(i + 1)}`;
-            const day = byDate[key];
-            const bookingCount = day?.bookings.length ?? 0;
-            const blockCount = day?.blocks.length ?? 0;
+            const events = byDate[key]?.events ?? [];
+            const wholeDay = events.find((e) => e.kind === 'block' && e.allDay);
             return (
               <button
                 key={key}
                 type="button"
                 role="gridcell"
                 aria-pressed={key === activeKey}
-                aria-label={`${formatDate(key)}${bookingCount ? `, ${bookingCount} booking${bookingCount > 1 ? 's' : ''}` : ''}${blockCount ? `, ${blockCount} block${blockCount > 1 ? 's' : ''}` : ''}`}
-                className={cx('acal__day', key === todayKey && 'is-today', key < todayKey && 'is-past', key === activeKey && 'is-selected')}
+                aria-label={`${formatDate(key)}: ${events.length ? events.map((e) => e.title).join(', ') : 'free'}`}
+                className={cx('acal__day', key === todayKey && 'is-today', key < todayKey && 'is-past', key === activeKey && 'is-selected', wholeDay && `ev--${wholeDay.type} is-blocked`)}
                 onClick={() => setSelected(key)}
               >
-                {i + 1}
+                <span className="acal__num">{i + 1}</span>
                 <span className="acal__dots" aria-hidden="true">
-                  {bookingCount > 0 && <i className="acal__dot acal__dot--booking" />}
-                  {blockCount > 0 && <i className="acal__dot acal__dot--block" />}
+                  {typesOf(events).slice(0, 3).map((t) => <i key={t} className={cx('acal__dot', `ev--${t}`)} />)}
                 </span>
+                {full && (
+                  <span className="acal__chips" aria-hidden="true">
+                    {events.slice(0, 2).map((e) => <CalendarEvent key={e.id} event={e} variant="chip" />)}
+                    {events.length > 2 && <span className="acal__more">+{events.length - 2} more</span>}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
         <ul className="acal__legend">
-          <li><i className="acal__dot acal__dot--booking" /> Booking</li>
-          <li><i className="acal__dot acal__dot--block" /> Blocked / unavailable</li>
+          {legend.map((t) => (
+            <li key={t}>
+              <i className={cx('acal__dot', t === 'blocked' ? 'ev--other' : `ev--${t}`)} />
+              {t === 'blocked' ? 'Blocked / unavailable' : EVENT_TYPES[t].label}
+            </li>
+          ))}
         </ul>
 
-        {error && (
-          <p className="panel__state" role="alert">{error} <button type="button" className="panel__retry" onClick={reload}>Try again</button></p>
-        )}
+        {error && <p className="panel__state" role="alert">{error} <button type="button" className="panel__retry" onClick={reload}>Try again</button></p>}
+        {removeError && <p className="form-alert" role="alert">{removeError}</p>}
 
         {!error && activeKey && (
           <div className="acal__detail" aria-live="polite">
-            <h3 className="acal__detail-title">{formatDate(activeKey)}</h3>
+            <div className="acal__detail-head">
+              <h3 className="acal__detail-title">{formatDate(activeKey)}</h3>
+              {full && activeKey >= todayKey && (
+                <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => onBlockDay?.(activeKey)}>Block this day</Button>
+              )}
+            </div>
             {!detail && loading && <p className="acal__empty">Loading…</p>}
-            {detail && detail.bookings.length === 0 && detail.blocks.length === 0 && <p className="acal__empty">Nothing scheduled. This day is free.</p>}
-            {detail?.bookings.map((b) => (
-              <p key={b.reference} className="acal__item acal__item--booking">
-                <strong>{formatTime(b.time)}</strong> {b.name} <small>{b.reference} · {b.hours}h</small>
-              </p>
-            ))}
-            {detail?.blocks.map((b, i) => (
-              <p key={`${b.type}-${i}`} className="acal__item acal__item--block">
-                <strong>{BLOCK_LABELS[b.type] ?? b.type}</strong>
-                {b.reason ? ` · ${b.reason}` : ''}
-                <small>{b.allDay ? 'All day' : b.blockedTimes.map(formatTime).join(', ')}</small>
-              </p>
+            {detail && detail.events.length === 0 && <p className="acal__empty">Nothing scheduled: this day is available.</p>}
+            {detail?.events.map((e) => (
+              <CalendarEvent key={e.id} event={e} onRemove={full ? setToRemove : undefined} />
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!toRemove}
+        onClose={() => setToRemove(null)}
+        onConfirm={confirmRemove}
+        loading={removing}
+        danger
+        title="Remove this block?"
+        message={toRemove ? `${toRemove.title} on ${formatDate(activeKey ?? todayKey)} will be removed and ${toRemove.allDay ? 'the whole day' : 'those hours'} can be booked again.` : ''}
+        confirmText="Remove block"
+      />
     </section>
   );
 }

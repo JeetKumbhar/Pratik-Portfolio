@@ -12,6 +12,7 @@ import AdminLogin from "../pages/Auth/AdminLogin";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import Dashboard from "../pages/Admin/Dashboard";
 import Bookings from "../pages/Admin/Bookings";
+import Calendar from "../pages/Admin/Calendar";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -51,7 +52,7 @@ export default function AppRoutes() {
         <Route path="admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="bookings" element={<Bookings />} />
-          <Route path="calendar" element={<Placeholder title="Calendar" />} />
+          <Route path="calendar" element={<Calendar />} />
           <Route path="clients" element={<Placeholder title="Clients" />} />
           <Route path="portfolio" element={<Placeholder title="Portfolio" />} />
           <Route path="packages" element={<Placeholder title="Packages" />} />

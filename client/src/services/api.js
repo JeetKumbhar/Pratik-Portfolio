@@ -12,11 +12,12 @@ import axios from 'axios';
 const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
 export class ApiError extends Error {
-  constructor(message, status = 0, errors) {
+  constructor(message, status = 0, errors, data) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors; // { field: 'message' } for validation errors
+    this.data = data; // the whole response body (e.g. { conflicts: [...] })
   }
 }
 
@@ -38,7 +39,7 @@ client.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response;
       if (status === 401 && error.config?.authed) onUnauthorized?.(); // a plain failed login has no token, so it never triggers this
-      return Promise.reject(new ApiError(data?.message || `Something went wrong (${status}).`, status, data?.errors));
+      return Promise.reject(new ApiError(data?.message || `Something went wrong (${status}).`, status, data?.errors, data));
     }
     if (error.code === 'ECONNABORTED') {
       return Promise.reject(new ApiError('The server took too long to respond. Please try again.', 0));
