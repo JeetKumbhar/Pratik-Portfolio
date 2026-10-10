@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Booking, BlockedDate } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
@@ -54,15 +55,31 @@ export const createBlockedDates = asyncHandler(async (req, res) => {
   const taken = new Set(existing.filter((e) => JSON.stringify([...e.blockedTimes].sort()) === wanted).map((e) => e.date));
   const toCreate = docs.filter((d) => !taken.has(d.date));
 
+  // Days created together share a groupId, so a vacation can be unblocked in one click
+  if (toCreate.length > 1) {
+    const groupId = randomUUID();
+    toCreate.forEach((d) => { d.groupId = groupId; });
+  }
+
   const created = toCreate.length ? await BlockedDate.insertMany(toCreate) : [];
   res.status(201).json({ success: true, created: created.length, skipped: docs.length - created.length, conflicts, data: created });
 });
 
-// @route DELETE /api/blocked-dates/:id   (ADMIN)  → the day (or hours) become bookable again
+// @route DELETE /api/blocked-dates/:id            (ADMIN)  unblock that one day (or those hours)
+// @route DELETE /api/blocked-dates/:id?scope=group (ADMIN)  unblock every day that was blocked together with it
 export const deleteBlockedDate = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { scope } = req.query;
+  if (scope !== undefined && scope !== 'group') throw httpError(400, 'scope can only be "group".');
+
   const block = /^[a-f\d]{24}$/i.test(id) ? await BlockedDate.findById(id) : null;
   if (!block) throw httpError(404, 'Block not found');
-  await block.deleteOne();
-  res.json({ success: true, message: 'Block removed', data: { date: block.date } });
+
+  let removed = 1;
+  if (scope === 'group' && block.groupId) {
+    removed = (await BlockedDate.deleteMany({ groupId: block.groupId })).deletedCount;
+  } else {
+    await block.deleteOne();
+  }
+  res.json({ success: true, message: removed === 1 ? 'Block removed' : `${removed} blocks removed`, removed, data: { date: block.date } });
 });

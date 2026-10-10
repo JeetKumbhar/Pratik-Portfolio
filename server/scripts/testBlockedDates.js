@@ -76,6 +76,11 @@ try {
   check('asking again is harmless: nothing new, 3 skipped', again.status === 201 && again.data.created === 0 && again.data.skipped === 3);
   const a1 = await adminDay(V1);
   check('admin calendar labels the day "vacation" and returns the block id + note', a1?.label === 'vacation' && Boolean(a1.blocks[0]?.id) && a1.blocks[0].note === 'private', JSON.stringify(a1?.blocks?.[0]));
+  const a2 = await adminDay(V2);
+  const a3 = await adminDay(V3);
+  check('the 3 days belong to one series (same groupId, group = 3 days from first to last)',
+    Boolean(a1.blocks[0].groupId) && a1.blocks[0].groupId === a2.blocks[0].groupId && a2.blocks[0].groupId === a3.blocks[0].groupId
+    && a1.blocks[0].group?.count === 3 && a1.blocks[0].group.start === V1 && a1.blocks[0].group.end === V3, JSON.stringify(a1.blocks[0].group));
   const pub = await publicMonth(V2);
   check('customers see those days as unavailable', pub?.data?.[V1] === 'unavailable' && pub?.data?.[V2] === 'unavailable' && pub?.data?.[V3] === 'unavailable');
   check('and never see the reason', !/vacation|Test trip|private/i.test(JSON.stringify(pub)));
@@ -103,11 +108,25 @@ try {
   const adminBooked = await adminDay(BOOKED);
   check('admin calendar shows both the booking and the editing block', adminBooked?.bookings[0]?.reference === bookingRef && adminBooked.blocks.some((b) => b.type === 'editing'));
 
-  console.log('\n-- Removing a block --');
-  const target = a1.blocks[0].id;
-  check('DELETE a block → 200', (await call(`/blocked-dates/${target}`, { method: 'DELETE', token })).status === 200);
-  check('the day is bookable again', (await adminDay(V1))?.blocks.length === 0);
-  check('deleting it again → 404', (await call(`/blocked-dates/${target}`, { method: 'DELETE', token })).status === 404);
+  console.log('\n-- Unblocking --');
+  check('a single-day block has no series', adminPartial.blocks[0].groupId === null && adminPartial.blocks[0].group === null);
+  const bad = await call(`/blocked-dates/${a1.blocks[0].id}?scope=everything`, { method: 'DELETE', token });
+  check('an unknown scope → 400 (and nothing is removed)', bad.status === 400 && (await adminDay(V1)).blocks.length === 1);
+
+  const one = await call(`/blocked-dates/${a1.blocks[0].id}`, { method: 'DELETE', token });
+  check('unblock ONE day of the series → 200, removed 1', one.status === 200 && one.data.removed === 1, `got ${one.status}`);
+  check('that day is bookable again', (await adminDay(V1)).blocks.length === 0);
+  const left = await adminDay(V2);
+  check('the other two days stay blocked and the series now counts 2', left.blocks.length === 1 && left.blocks[0].group?.count === 2, JSON.stringify(left.blocks[0]?.group));
+
+  const rest = await call(`/blocked-dates/${left.blocks[0].id}?scope=group`, { method: 'DELETE', token });
+  check('unblock the WHOLE series from one day → 200, removed 2', rest.status === 200 && rest.data.removed === 2, `got ${rest.status}: ${JSON.stringify(rest.data)}`);
+  check('both remaining days are bookable again', (await adminDay(V2)).blocks.length === 0 && (await adminDay(V3)).blocks.length === 0);
+  check('customers can book those days again', ['available', 'limited'].includes((await publicMonth(V2))?.data?.[V2]));
+
+  const single = await call(`/blocked-dates/${adminPartial.blocks[0].id}?scope=group`, { method: 'DELETE', token });
+  check('scope=group on a one-day block removes just that block', single.status === 200 && single.data.removed === 1);
+  check('unblocking something already gone → 404', (await call(`/blocked-dates/${a1.blocks[0].id}`, { method: 'DELETE', token })).status === 404);
   check('a malformed id → 404', (await call('/blocked-dates/not-an-id', { method: 'DELETE', token })).status === 404);
 } catch (err) {
   console.error('\nTest crashed:', err.message);

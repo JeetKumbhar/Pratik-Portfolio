@@ -103,7 +103,7 @@ export default function BlockedDayModal({ isOpen, onClose, initialDate = '', onD
       )}
     >
       <form className="block-form" onSubmit={(e) => { e.preventDefault(); submit(false); }} noValidate>
-        <Select id="block-type" label="Type" options={TYPE_OPTIONS} value={form.type} onChange={(e) => changeType(e.target.value)} />
+        <p className="block-form__intro">Customers simply see this time as unavailable. The reason and note stay private.</p>
 
         <div className="block-form__dates">
           <Input id="block-start" type="date" label="From" required icon={<Calendar size={18} />} min={todayKey}
@@ -112,6 +112,8 @@ export default function BlockedDayModal({ isOpen, onClose, initialDate = '', onD
             value={form.end} onChange={(e) => set({ end: e.target.value })} error={errors.end}
             hint={days > 1 ? `${days} days` : 'Leave empty for a single day'} />
         </div>
+
+        <Select id="block-type" label="Type" options={TYPE_OPTIONS} value={form.type} onChange={(e) => changeType(e.target.value)} />
 
         <fieldset className="block-form__when">
           <legend className="field__label">Which hours?</legend>
@@ -131,9 +133,9 @@ export default function BlockedDayModal({ isOpen, onClose, initialDate = '', onD
           {errors.times && <p className="field__error" role="alert">{errors.times}</p>}
         </fieldset>
 
-        <Input id="block-reason" label="Label (shown on your calendar)" maxLength={200} placeholder="e.g. Wedding for the Patels"
+        <Input id="block-reason" label="Reason (optional)" maxLength={200} placeholder="e.g. Family trip" hint="Shown on your calendar"
           value={form.reason} onChange={(e) => set({ reason: e.target.value })} />
-        <Textarea id="block-note" label="Private note (optional)" maxLength={1000} rows={3}
+        <Textarea id="block-note" label="Note (optional)" maxLength={1000} rows={3}
           value={form.note} onChange={(e) => set({ note: e.target.value })} />
 
         {hasConflicts && (

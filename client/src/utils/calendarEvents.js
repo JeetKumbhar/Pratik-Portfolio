@@ -31,6 +31,8 @@ export function buildEvents(day, shootLabel = (t) => t) {
     allDay: b.allDay,
     times: b.blockedTimes ?? [],
     blockId: b.id,
+    groupId: b.groupId ?? null,
+    group: b.group ?? null, // { count, start, end } when this day was blocked together with others
   }));
 
   const bookings = (day?.bookings ?? []).map((b) => ({

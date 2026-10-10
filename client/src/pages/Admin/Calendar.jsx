@@ -29,6 +29,7 @@ export default function Calendar() {
       <AdminCalendar
         variant="full"
         refreshKey={refreshKey}
+        onChanged={({ removed }) => setNotice(`Unblocked ${removed} block${removed === 1 ? '' : 's'}. Customers can book that time again.`)}
         onBlockDay={(date) => { setNotice(''); setModal({ open: true, date }); }}
       />
 

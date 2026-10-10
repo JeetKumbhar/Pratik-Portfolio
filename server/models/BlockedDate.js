@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 import { BLOCKED_DATE_TYPES } from '../config/constants.js';
 import { isDateKey, isBookableTime } from '../utils/validators.js';
@@ -13,7 +12,8 @@ import { isDateKey, isBookableTime } from '../utils/validators.js';
  * - blockedTimes empty  → the WHOLE day is blocked (editing day, vacation, personal day).
  * - blockedTimes filled → only those hourly slots, e.g. an offline booking: ['14:00', '15:00'].
  * - Several blocks may exist for the same date (e.g. two offline bookings at different times).
- * - A vacation of N days = N documents, one per date (the admin API will create them from a date range).
+ * - A vacation of N days = N documents, one per date. Days created together share a `groupId`,
+ *   so the admin can unblock the whole vacation in one click (or just one day).
  *
  * `reason` is a short label ("Wedding for the Patels"); `note` is longer private detail.
  * Customers never see either; they only see the slot as unavailable.
@@ -41,6 +41,7 @@ const blockedDateSchema = new mongoose.Schema(
         message: 'Times must be HH:MM within opening hours',
       },
     },
+    groupId: { type: String, trim: true }, // set when several days are blocked in one go
   },
   {
     timestamps: true, // adds createdAt + updatedAt
@@ -70,5 +71,6 @@ blockedDateSchema.methods.blocksTime = function blocksTime(time) {
 };
 
 blockedDateSchema.index({ date: 1 }); // NOT unique: several blocks can share a date
+blockedDateSchema.index({ groupId: 1 }, { sparse: true });
 
 export default mongoose.model('BlockedDate', blockedDateSchema);

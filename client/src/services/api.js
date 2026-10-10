@@ -54,7 +54,7 @@ export const api = {
   get: (path, options = {}) => client.get(path, { params: options.params, ...auth(options.token) }),
   post: (path, body, options = {}) => client.post(path, body, auth(options.token)),
   patch: (path, body, options = {}) => client.patch(path, body, auth(options.token)),
-  delete: (path, options = {}) => client.delete(path, auth(options.token)),
+  delete: (path, options = {}) => client.delete(path, { params: options.params, ...auth(options.token) }),
 };
 
 export default api;

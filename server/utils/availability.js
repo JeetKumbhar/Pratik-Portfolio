@@ -85,7 +85,7 @@ export function buildMonth(year, monthIndex, bookings, blocks, durationHours = 1
  *        | 'booked' (nothing left) | 'partly_booked' | 'available'
  * Past days are shown as they really are (date rules off) so the admin sees history.
  */
-export function buildAdminMonth(year, monthIndex, bookings, blocks, durationHours = 1) {
+export function buildAdminMonth(year, monthIndex, bookings, blocks, durationHours = 1, groups = {}) {
   const days = new Date(year, monthIndex + 1, 0).getDate();
   const bookingsByDate = groupByDate(bookings);
   const blocksByDate = groupByDate(blocks);
@@ -110,7 +110,10 @@ export function buildAdminMonth(year, monthIndex, bookings, blocks, durationHour
       status,
       label,
       bookings: dayBookings.map((b) => ({ reference: b.bookingId, name: b.name, shootType: b.shootType, status: b.status, time: b.time, hours: hoursOf(b) })),
-      blocks: dayBlocks.map((b) => ({ id: String(b._id), type: b.type, reason: b.reason, note: b.note ?? '', allDay: !b.blockedTimes?.length, blockedTimes: b.blockedTimes || [] })),
+      blocks: dayBlocks.map((b) => ({
+        id: String(b._id), type: b.type, reason: b.reason, note: b.note ?? '', allDay: !b.blockedTimes?.length, blockedTimes: b.blockedTimes || [],
+        groupId: b.groupId ?? null, group: (b.groupId && groups[b.groupId]) || null, // group = { count, start, end } when blocked together with other days
+      })),
     });
   }
   return result;
@@ -162,7 +165,20 @@ export async function getMonthAvailability(year, monthIndex, durationHours = 1) 
 export async function getAdminMonth(year, monthIndex, durationHours = 1) {
   const [bookings, blocks] = await loadMonth(year, monthIndex, {
     booking: 'bookingId name date time shootType status package.durationHours',
-    block: 'date type reason note blockedTimes',
+    block: 'date type reason note blockedTimes groupId',
   });
-  return buildAdminMonth(year, monthIndex, bookings, blocks, durationHours);
+
+  // For blocks created as a range: how many days are in the series, and from when to when (may extend into other months)
+  const groupIds = [...new Set(blocks.map((b) => b.groupId).filter(Boolean))];
+  const groups = {};
+  if (groupIds.length) {
+    const { BlockedDate } = await models();
+    const rows = await BlockedDate.aggregate([
+      { $match: { groupId: { $in: groupIds } } },
+      { $group: { _id: '$groupId', count: { $sum: 1 }, start: { $min: '$date' }, end: { $max: '$date' } } },
+    ]);
+    rows.forEach((r) => { if (r.count > 1) groups[r._id] = { count: r.count, start: r.start, end: r.end }; });
+  }
+
+  return buildAdminMonth(year, monthIndex, bookings, blocks, durationHours, groups);
 }

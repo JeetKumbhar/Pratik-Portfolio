@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { Unlock } from 'lucide-react';
 import Badge from '../common/Badge';
-import { formatTime } from '../booking/bookingData';
+import { formatTime, fromKey } from '../booking/bookingData';
 import { cx } from '../../utils/helpers';
 
 /**
@@ -11,6 +11,7 @@ import { cx } from '../../utils/helpers';
  */
 export default function CalendarEvent({ event, variant = 'row', onRemove }) {
   const colour = `ev--${event.type}`;
+  const shortDate = (key) => fromKey(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   if (variant === 'chip') {
     return <span className={cx('cev-chip', colour)}>{event.kind === 'booking' ? event.subtitle : event.title}</span>;
@@ -30,10 +31,11 @@ export default function CalendarEvent({ event, variant = 'row', onRemove }) {
         </p>
         <p className="cev__sub">{detail}{event.kind === 'booking' && <small> · {event.reference}</small>}</p>
         {event.note && <p className="cev__note">{event.note}</p>}
+        {event.group && <p className="cev__note">Part of a {event.group.count}-day block ({shortDate(event.group.start)} to {shortDate(event.group.end)})</p>}
       </div>
       {onRemove && event.kind === 'block' && (
-        <button type="button" className="cev__remove" onClick={() => onRemove(event)} aria-label={`Remove ${event.title}`}>
-          <Trash2 size={15} />
+        <button type="button" className="cev__unblock" onClick={() => onRemove(event)} aria-label={`Unblock ${event.title}`}>
+          <Unlock size={14} /> Unblock
         </button>
       )}
     </div>

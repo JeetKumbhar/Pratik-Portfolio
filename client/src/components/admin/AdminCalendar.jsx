@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Button from '../common/Button';
-import ConfirmModal from '../common/ConfirmModal';
+import Modal from '../common/Modal';
 import CalendarEvent from './CalendarEvent';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
@@ -29,7 +29,7 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
   const [selected, setSelected] = useState(todayKey);
   const [toRemove, setToRemove] = useState(null);
-  const [removing, setRemoving] = useState(false);
+  const [removing, setRemoving] = useState(''); // '' | 'day' | 'group' (which button is working)
   const [removeError, setRemoveError] = useState('');
 
   const { data, loading, error, reload } = useFetch(
@@ -55,17 +55,18 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
   });
   const goToday = () => { setView({ year: today.getFullYear(), month: today.getMonth() }); setSelected(todayKey); };
 
-  const confirmRemove = async () => {
-    setRemoving(true);
+  // scope 'day' = just this block, 'group' = the whole series it was created with
+  const confirmRemove = async (scope) => {
+    setRemoving(scope);
     setRemoveError('');
     try {
-      await deleteBlockedDate(token, toRemove.blockId);
+      const result = await deleteBlockedDate(token, toRemove.blockId, scope === 'group' ? 'group' : undefined);
       reload();
-      onChanged?.();
+      onChanged?.({ removed: result.removed ?? 1 });
     } catch (err) {
       setRemoveError(err.message);
     } finally {
-      setRemoving(false);
+      setRemoving('');
       setToRemove(null);
     }
   };
@@ -152,16 +153,32 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
         )}
       </div>
 
-      <ConfirmModal
+      <Modal
         isOpen={!!toRemove}
-        onClose={() => setToRemove(null)}
-        onConfirm={confirmRemove}
-        loading={removing}
-        danger
-        title="Remove this block?"
-        message={toRemove ? `${toRemove.title} on ${formatDate(activeKey ?? todayKey)} will be removed and ${toRemove.allDay ? 'the whole day' : 'those hours'} can be booked again.` : ''}
-        confirmText="Remove block"
-      />
+        onClose={() => !removing && setToRemove(null)}
+        title={toRemove?.group ? `Unblock ${toRemove.title.toLowerCase()}?` : 'Unblock this?'}
+        size="sm"
+        footer={(
+          <>
+            <Button variant="ghost" onClick={() => setToRemove(null)} disabled={!!removing}>Cancel</Button>
+            {toRemove?.group && (
+              <Button variant="outline" onClick={() => confirmRemove('day')} loading={removing === 'day'} disabled={!!removing}>This day only</Button>
+            )}
+            <Button variant="danger" onClick={() => confirmRemove(toRemove?.group ? 'group' : 'day')}
+              loading={removing === (toRemove?.group ? 'group' : 'day')} disabled={!!removing}>
+              {toRemove?.group ? `All ${toRemove.group.count} days` : 'Unblock'}
+            </Button>
+          </>
+        )}
+      >
+        {toRemove && (
+          <p className="confirm__message">
+            {toRemove.group
+              ? `This day is part of a ${toRemove.group.count}-day ${toRemove.title.toLowerCase()} (${formatDate(toRemove.group.start)} to ${formatDate(toRemove.group.end)}). Unblock just this day, or the whole series? Customers can book unblocked time again straight away.`
+              : `${toRemove.title} on ${formatDate(activeKey ?? todayKey)} will be removed, and ${toRemove.allDay ? 'the whole day' : 'those hours'} can be booked again straight away.`}
+          </p>
+        )}
+      </Modal>
     </section>
   );
 }

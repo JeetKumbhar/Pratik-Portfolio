@@ -38,5 +38,9 @@ export const deleteBooking = (token, reference) => api.delete(`/bookings/${encod
  */
 export const createBlockedDates = (token, payload) => api.post('/blocked-dates', payload, { token });
 
-/** DELETE /api/blocked-dates/:id → the day (or hours) become bookable again */
-export const deleteBlockedDate = (token, id) => api.delete(`/blocked-dates/${encodeURIComponent(id)}`, { token });
+/**
+ * DELETE /api/blocked-dates/:id → that day (or those hours) become bookable again.   → { removed }
+ * scope 'group' also removes every day that was blocked together with it (a whole vacation).
+ */
+export const deleteBlockedDate = (token, id, scope) =>
+  api.delete(`/blocked-dates/${encodeURIComponent(id)}`, { token, ...(scope && { params: { scope } }) });
