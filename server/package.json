@@ -19,7 +19,8 @@
     "check:availability": "node scripts/checkAvailability.js",
     "check:stats": "node scripts/checkBookingStats.js",
     "test:bookings": "node scripts/testBookingManagement.js",
-    "test:blocks": "node scripts/testBlockedDates.js"
+    "test:blocks": "node scripts/testBlockedDates.js",
+    "test:portfolio": "node scripts/testPortfolioApi.js"
 
   },
   "keywords": [],

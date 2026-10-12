@@ -13,6 +13,7 @@ import ProtectedRoute from "../components/auth/ProtectedRoute";
 import Dashboard from "../pages/Admin/Dashboard";
 import Bookings from "../pages/Admin/Bookings";
 import Calendar from "../pages/Admin/Calendar";
+import AdminPortfolio from "../pages/Admin/Portfolio";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -36,10 +37,7 @@ export default function AppRoutes() {
         <Route path="booking" element={<Booking />} />
         <Route path="blog" element={<Placeholder title="Blog" />} />
         <Route path="contact" element={<Contact />} />
-        <Route
-          path="gallery/:id"
-          element={<Placeholder title="Client Gallery" />}
-        />
+        <Route path="gallery/:id" element={<Placeholder title="Client Gallery" />} />
         <Route path="login" element={<Navigate to="/admin/login" replace />} />
         <Route path="*" element={<NotFound />} />
       </Route>
@@ -54,7 +52,7 @@ export default function AppRoutes() {
           <Route path="bookings" element={<Bookings />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="clients" element={<Placeholder title="Clients" />} />
-          <Route path="portfolio" element={<Placeholder title="Portfolio" />} />
+          <Route path="portfolio" element={<AdminPortfolio />} />
           <Route path="packages" element={<Placeholder title="Packages" />} />
           <Route path="messages" element={<Placeholder title="Messages" />} />
           <Route path="settings" element={<Placeholder title="Settings" />} />

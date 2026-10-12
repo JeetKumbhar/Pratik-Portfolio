@@ -16,7 +16,7 @@ import authRoutes from './routes/authRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import availabilityRoutes from './routes/availabilityRoutes.js';
 import blockedDateRoutes from './routes/blockedDateRoutes.js';
-// import portfolioRoutes from './routes/portfolioRoutes.js';
+import portfolioRoutes from './routes/portfolioRoutes.js';
 // import clientRoutes from './routes/clientRoutes.js';
 // import messageRoutes from './routes/messageRoutes.js';
 
@@ -44,7 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/blocked-dates', blockedDateRoutes);
-// app.use('/api/portfolio', portfolioRoutes);
+app.use('/api/portfolio', portfolioRoutes);
 // app.use('/api/clients', clientRoutes);
 // app.use('/api/messages', messageRoutes);
 

@@ -1,0 +1,48 @@
+/* ===== Admin: portfolio ===== */
+.pa { display: flex; flex-direction: column; gap: 20px; }
+.pa__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pa__count { font-size: 14px; color: var(--text-muted); }
+.pa__tools { display: flex; flex-wrap: wrap; gap: 10px; }
+.pa-notice { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: rgba(95, 184, 119, 0.1); border: 1px solid var(--success); border-radius: var(--radius-md); font-size: 14px; color: var(--success); }
+.pa-notice--warn { background: rgba(230, 170, 76, 0.1); border-color: var(--gold); color: var(--gold); }
+.pa-notice button { margin-left: auto; background: none; border: 0; font-size: 20px; line-height: 1; color: inherit; }
+
+.pa-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.pa-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: border-color 0.2s; }
+.pa-card:hover { border-color: var(--gold); }
+.pa-card__media { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; background: var(--surface-2); border: 0; overflow: hidden; }
+.pa-card__img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s var(--ease); }
+.pa-card__media:hover .pa-card__img { transform: scale(1.04); }
+.pa-card__badge { position: absolute; top: 10px; left: 10px; }
+.pa-card__star { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(10, 10, 10, 0.8); color: var(--gold); }
+.pa-card__body { padding: 14px 16px 12px; }
+.pa-card__title { font-size: 15px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.pa-card__meta { margin-top: 2px; font-size: 12px; color: var(--text-muted); }
+.pa-card__actions { display: flex; gap: 8px; margin-top: 12px; }
+.pa-danger { color: var(--danger); }
+.pa-danger:hover:not(:disabled) { border-color: var(--danger); }
+@media (hover: none) { .pa-card__media:hover .pa-card__img { transform: none; } }
+
+/* ===== Add / edit photo dialog ===== */
+.photo-form { display: flex; flex-direction: column; gap: 18px; }
+.photo-form__mode { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-form__mode .chip { display: inline-flex; align-items: center; gap: 6px; }
+.photo-form__current img { display: block; width: 100%; max-height: 260px; object-fit: contain; background: var(--surface-2); border-radius: var(--radius-md); }
+.photo-form__current p { margin-top: 8px; font-size: 13px; color: var(--text-muted); }
+.drop { display: grid; place-items: center; min-height: 190px; padding: 16px; cursor: pointer; background: var(--surface-2); border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); transition: border-color 0.2s, background 0.2s; }
+.drop:hover, .drop.is-over, .drop:focus-within { border-color: var(--gold); background: var(--gold-soft); }
+.drop.has-error { border-color: var(--danger); }
+.drop__empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: var(--gold); }
+.drop__empty strong { color: var(--text); font-weight: 500; }
+.drop__empty small { color: var(--text-muted); }
+.drop__preview { max-width: 100%; max-height: 260px; border-radius: var(--radius-md); }
+.drop__meta { margin-top: 8px; font-size: 13px; color: var(--text-muted); overflow-wrap: anywhere; }
+.drop__meta button { background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; font-size: 13px; }
+.photo-form__checks { display: flex; flex-direction: column; gap: 10px; }
+.photo-form__checks label { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.photo-form__checks input { width: 16px; height: 16px; accent-color: var(--gold); }
+.photo-form__checks small { color: var(--text-muted); }
+.photo-form__progress { display: flex; flex-direction: column; gap: 6px; }
+.photo-form__bar { height: 6px; background: var(--border-strong); border-radius: 999px; overflow: hidden; }
+.photo-form__bar span { display: block; height: 100%; background: var(--gold); transition: width 0.2s; }
+.photo-form__progress small { font-size: 12px; color: var(--text-muted); }

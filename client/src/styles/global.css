@@ -15,6 +15,7 @@
 @import './dashboard.css';
 @import './admin-bookings.css';
 @import './admin-calendar.css';
+@import './admin-portfolio.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

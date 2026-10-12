@@ -44,3 +44,19 @@ export const createBlockedDates = (token, payload) => api.post('/blocked-dates',
  */
 export const deleteBlockedDate = (token, id, scope) =>
   api.delete(`/blocked-dates/${encodeURIComponent(id)}`, { token, ...(scope && { params: { scope } }) });
+
+// ---------------------------------------------------------------- portfolio management
+/** GET /api/portfolio/admin → every photo, drafts included, newest first */
+export const getPortfolioAdmin = (token) => api.get('/portfolio/admin', { token }).then((r) => r.data);
+
+/** GET /api/portfolio/upload-signature → { cloudName, apiKey, timestamp, folder, allowedFormats, signature } (503 until Cloudinary is set up) */
+export const getUploadSignature = (token) => api.get('/portfolio/upload-signature', { token }).then((r) => r.data);
+
+/** POST /api/portfolio → the new photo. payload: { title, category, description?, featured?, isPublished?, image: { url, publicId?, width?, height? } } */
+export const createPhoto = (token, payload) => api.post('/portfolio', payload, { token }).then((r) => r.data);
+
+/** PATCH /api/portfolio/:id → the updated photo. changes: title, category, description, alt, featured, isPublished, sortOrder */
+export const updatePhoto = (token, id, changes) => api.patch(`/portfolio/${encodeURIComponent(id)}`, changes, { token }).then((r) => r.data);
+
+/** DELETE /api/portfolio/:id → { storageDeleted: true | false | null } (the stored file is removed too) */
+export const deletePhoto = (token, id) => api.delete(`/portfolio/${encodeURIComponent(id)}`, { token });

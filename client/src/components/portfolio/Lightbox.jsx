@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import PortfolioImage from './PortfolioImage';
+import { transformUrl } from '../../utils/imageUtils';
 import { categoryLabel } from './portfolioData';
 
 /**
@@ -35,7 +36,7 @@ export default function Lightbox({ items, index, onClose, onIndexChange }) {
     // Preload neighbours so next/prev feels instant
     [1, -1].forEach((d) => {
       const n = items[(index + d + total) % total];
-      if (n) new Image().src = n.src;
+      if (n) new Image().src = transformUrl(n.src, { width: 1600 });
     });
 
     return () => {
@@ -79,7 +80,7 @@ export default function Lightbox({ items, index, onClose, onIndexChange }) {
 
       <figure className="lightbox__figure">
         {/* key remounts the image so a failed one doesn't stick on the next photo */}
-        <PortfolioImage key={item.id} item={item} className="lightbox__img" eager />
+        <PortfolioImage key={item.id} item={item} className="lightbox__img" eager width={1600} />
         <figcaption className="lightbox__caption">
           <strong>{item.title}</strong>
           <span>{categoryLabel(item.category)}</span>
