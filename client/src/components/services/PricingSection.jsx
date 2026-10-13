@@ -31,7 +31,7 @@ export default function PricingSection() {
           title="Packages & Pricing"
           subtitle="Simple, transparent pricing for every need."
           align="center"
-          serif split
+          serif
         />
 
         {status === 'loading' && <div className="pricing__state"><Loader label="Loading packages" /></div>}
@@ -45,8 +45,16 @@ export default function PricingSection() {
           />
         )}
 
-        {status === 'ready' && (
-          <ul className="pricing__grid" data-stagger>
+        {status === 'ready' && packages.length === 0 && (
+          <EmptyState
+            title="Pricing is being updated"
+            message="Packages will be back shortly. In the meantime, get in touch for a custom quote."
+            action={<Button to="/contact">Get a quote</Button>}
+          />
+        )}
+
+        {status === 'ready' && packages.length > 0 && (
+          <ul className="pricing__grid">
             {packages.map((pkg) => (
               <li key={pkg.id}><PricingCard pkg={pkg} /></li>
             ))}

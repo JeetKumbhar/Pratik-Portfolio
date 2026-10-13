@@ -16,6 +16,7 @@
 @import './admin-bookings.css';
 @import './admin-calendar.css';
 @import './admin-portfolio.css';
+@import './admin-packages.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

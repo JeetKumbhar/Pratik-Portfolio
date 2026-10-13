@@ -60,3 +60,16 @@ export const updatePhoto = (token, id, changes) => api.patch(`/portfolio/${encod
 
 /** DELETE /api/portfolio/:id → { storageDeleted: true | false | null } (the stored file is removed too) */
 export const deletePhoto = (token, id) => api.delete(`/portfolio/${encodeURIComponent(id)}`, { token });
+
+// ---------------------------------------------------------------- package management
+/** GET /api/packages/admin → the WHOLE body { data: [every package, active or not], usage: { slug: bookings that used it } } */
+export const getPackagesAdmin = (token) => api.get('/packages/admin', { token });
+
+/** POST /api/packages → the new package. payload: { name, price, duration, durationHours, category, description, features[], popular, active, sortOrder? } */
+export const createPackage = (token, payload) => api.post('/packages', payload, { token }).then((r) => r.data);
+
+/** PATCH /api/packages/:id (the database id, `_id`) → the updated package. Any of the fields above, e.g. { active: false } or { price: 1500 } */
+export const updatePackage = (token, id, changes) => api.patch(`/packages/${encodeURIComponent(id)}`, changes, { token }).then((r) => r.data);
+
+/** DELETE /api/packages/:id → { bookings } (existing bookings keep the name and price they were booked with) */
+export const deletePackage = (token, id) => api.delete(`/packages/${encodeURIComponent(id)}`, { token });
