@@ -73,3 +73,19 @@ export const updatePackage = (token, id, changes) => api.patch(`/packages/${enco
 
 /** DELETE /api/packages/:id → { bookings } (existing bookings keep the name and price they were booked with) */
 export const deletePackage = (token, id) => api.delete(`/packages/${encodeURIComponent(id)}`, { token });
+
+// ---------------------------------------------------------------- contact messages
+/** GET /api/messages → the WHOLE body { total, page, pages, counts:{all,unread,read}, data:[…] }.  params: { filter: 'unread'|'read', search, page, limit } */
+export const getMessages = (token, params) => api.get('/messages', { token, params });
+
+/** GET /api/messages/unread-count → the number (for the sidebar badge) */
+export const getUnreadCount = (token) => api.get('/messages/unread-count', { token }).then((r) => r.unread);
+
+/** PATCH /api/messages/:id → the updated message.  changes: { status: 'read' | 'new' } */
+export const updateMessage = (token, id, changes) => api.patch(`/messages/${encodeURIComponent(id)}`, changes, { token }).then((r) => r.data);
+
+/** POST /api/messages/mark-all-read → { updated } */
+export const markAllMessagesRead = (token) => api.post('/messages/mark-all-read', {}, { token });
+
+/** DELETE /api/messages/:id → permanent */
+export const deleteMessage = (token, id) => api.delete(`/messages/${encodeURIComponent(id)}`, { token });

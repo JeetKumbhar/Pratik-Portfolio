@@ -1,16 +1,10 @@
+import api from './api';
+
 /**
- * UI-ONLY for now: pretends to send, so you can test the whole form flow.
- *
- * Later, connect the backend:
- *   import api from './api';
- *   export async function sendMessage(payload) {
- *     const { data } = await api.post('/messages', payload);   // POST /api/messages
- *     return data;
- *   }
+ * Sends the contact form to the backend: POST /api/messages → MongoDB → Admin → Messages.
  * payload = { name, email, phone, subject, message }
+ * Throws ApiError: 400 = invalid details, 429 = too many messages from this connection, 0 = server unreachable.
  */
 export async function sendMessage(payload) {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  if (import.meta.env.DEV) console.info('[contact] UI-only, message not sent:', payload);
-  return { success: true };
+  return api.post('/messages', payload);
 }

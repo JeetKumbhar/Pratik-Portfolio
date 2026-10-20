@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Bell, Camera, CheckCircle2, Clock } from 'lucide-react';
+import { Bell, Camera, CheckCircle2, Clock, Mail } from 'lucide-react';
 import { buildNotifications } from '../../utils/adminNotifications';
 
-const ICONS = { pending: Clock, shoot: Camera, new: Bell };
+const ICONS = { pending: Clock, shoot: Camera, new: Bell, message: Mail };
 
 /** "What needs my attention", worked out from the dashboard data (no extra requests). */
-export default function NotificationPanel({ stats, recent, loading }) {
-  const items = loading ? [] : buildNotifications({ stats, recent });
+export default function NotificationPanel({ stats, recent, unreadMessages = 0, loading }) {
+  const items = loading ? [] : buildNotifications({ stats, recent, unreadMessages });
 
   return (
     <section className="panel" aria-labelledby="notif-title">

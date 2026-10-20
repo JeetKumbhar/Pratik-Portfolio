@@ -14,6 +14,7 @@ export default function ContactForm() {
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
+  const [errorMessage, setErrorMessage] = useState('');
 
   const set = (field) => (e) => {
     const value = e.target.value;
@@ -40,7 +41,8 @@ export default function ContactForm() {
       const { website, ...payload } = values;
       await sendMessage(payload);
       setStatus('success');
-    } catch {
+    } catch (err) {
+      setErrorMessage(err.message);
       setStatus('error');
     }
   };
@@ -62,7 +64,7 @@ export default function ContactForm() {
     <form className="contact-form" onSubmit={onSubmit} noValidate>
       {status === 'error' && (
         <p className="form-alert" role="alert">
-          <AlertCircle size={18} /> Something went wrong sending your message. Please try again.
+          <AlertCircle size={18} /> {errorMessage || 'Something went wrong sending your message. Please try again.'}
         </p>
       )}
 

@@ -17,6 +17,7 @@
 @import './admin-calendar.css';
 @import './admin-portfolio.css';
 @import './admin-packages.css';
+@import './admin-messages.css';
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

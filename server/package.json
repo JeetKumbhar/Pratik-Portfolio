@@ -21,7 +21,8 @@
     "test:bookings": "node scripts/testBookingManagement.js",
     "test:blocks": "node scripts/testBlockedDates.js",
     "test:portfolio": "node scripts/testPortfolioApi.js",
-    "test:packages": "node scripts/testPackageApi.js"
+    "test:packages": "node scripts/testPackageApi.js",
+    "test:messages": "node scripts/testMessagesApi.js"
 
   },
   "keywords": [],

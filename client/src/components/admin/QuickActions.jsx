@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { CalendarX, Clock, Mail, Package, Upload } from 'lucide-react';
 
-export default function QuickActions({ pending = 0 }) {
+export default function QuickActions({ pending = 0, unreadMessages = 0 }) {
   const actions = [
     { label: 'Review pending requests', to: '/admin/bookings?status=pending', icon: Clock, badge: pending },
     { label: 'Block a date', to: '/admin/calendar', icon: CalendarX },
     { label: 'Upload photos', to: '/admin/portfolio', icon: Upload },
     { label: 'Edit packages', to: '/admin/packages', icon: Package },
-    { label: 'Read messages', to: '/admin/messages', icon: Mail },
+    { label: 'Read messages', to: '/admin/messages', icon: Mail, badge: unreadMessages },
   ];
 
   return (

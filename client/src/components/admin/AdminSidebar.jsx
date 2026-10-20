@@ -6,7 +6,7 @@ import useAuth from '../../hooks/useAuth';
 import { ADMIN_NAV } from './adminNav';
 import { cx } from '../../utils/helpers';
 
-export default function AdminSidebar({ isOpen, onClose }) {
+export default function AdminSidebar({ isOpen, onClose, unreadMessages = 0 }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -49,6 +49,9 @@ export default function AdminSidebar({ isOpen, onClose }) {
             >
               <Icon size={18} aria-hidden="true" />
               {label}
+              {to === '/admin/messages' && unreadMessages > 0 && (
+                <span className="admin-sidebar__badge" aria-label={`${unreadMessages} unread`}>{unreadMessages > 99 ? '99+' : unreadMessages}</span>
+              )}
             </NavLink>
           ))}
         </nav>

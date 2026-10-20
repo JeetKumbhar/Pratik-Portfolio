@@ -31,7 +31,7 @@ export function timeAgo(iso, now = new Date()) {
   return `${days} day${days === 1 ? '' : 's'} ago`;
 }
 
-export function buildNotifications({ stats, recent = [], now = new Date() }) {
+export function buildNotifications({ stats, recent = [], unreadMessages = 0, now = new Date() }) {
   const items = [];
 
   if (stats?.pending > 0) {
@@ -40,6 +40,15 @@ export function buildNotifications({ stats, recent = [], now = new Date() }) {
       title: `${stats.pending} booking request${stats.pending === 1 ? '' : 's'} waiting for your reply`,
       detail: 'Customers are expecting an answer within 24 hours.',
       to: '/admin/bookings?status=pending',
+    });
+  }
+
+  if (unreadMessages > 0) {
+    items.push({
+      id: 'messages', kind: 'message',
+      title: `${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}`,
+      detail: 'Someone contacted you through the website.',
+      to: '/admin/messages?filter=unread',
     });
   }
 

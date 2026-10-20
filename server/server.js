@@ -18,7 +18,7 @@ import availabilityRoutes from './routes/availabilityRoutes.js';
 import blockedDateRoutes from './routes/blockedDateRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 // import clientRoutes from './routes/clientRoutes.js';
-// import messageRoutes from './routes/messageRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,7 +46,7 @@ app.use('/api/availability', availabilityRoutes);
 app.use('/api/blocked-dates', blockedDateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 // app.use('/api/clients', clientRoutes);
-// app.use('/api/messages', messageRoutes);
+app.use('/api/messages', messageRoutes);
 
 // ---------- Errors (must be last) ----------
 app.use(notFound);

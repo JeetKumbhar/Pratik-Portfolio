@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { CalendarCheck, CalendarClock, Clock, RefreshCw, Wallet, AlertCircle } from 'lucide-react';
 import Button from '../../components/common/Button';
 import StatCard from '../../components/admin/StatCard';
@@ -17,6 +18,7 @@ import { getBookingStats, getRecentBookings } from '../../services/adminService'
  */
 export default function Dashboard() {
   const { token, user } = useAuth();
+  const { unreadMessages = 0 } = useOutletContext() ?? {}; // counted once, in AdminLayout
   const stats = useFetch(() => getBookingStats(token), [token]);
   const recent = useFetch(() => getRecentBookings(token, 6), [token]);
   const [calendarKey, setCalendarKey] = useState(0);
@@ -61,8 +63,8 @@ export default function Dashboard() {
           <AdminCalendar refreshKey={calendarKey} />
         </div>
         <div className="dash__side">
-          <NotificationPanel stats={s} recent={recent.data ?? []} loading={stats.loading || recent.loading} />
-          <QuickActions pending={s?.pending ?? 0} />
+          <NotificationPanel stats={s} recent={recent.data ?? []} unreadMessages={unreadMessages} loading={stats.loading || recent.loading} />
+          <QuickActions pending={s?.pending ?? 0} unreadMessages={unreadMessages} />
         </div>
       </div>
     </div>
