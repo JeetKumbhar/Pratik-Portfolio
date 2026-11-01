@@ -1,3 +1,14 @@
-node_modules/
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
 *.log
