@@ -12,6 +12,7 @@ const EMPTY_VALUES = {
   name: '', email: '', phone: '',
   shootType: '', location: '', locationDetails: '', people: 2, styles: [], requests: '', packageId: '',
   date: '', time: '',
+  whatsappOptIn: false, // ticked on step 1: the customer wants WhatsApp updates about this booking
 };
 
 function loadDraft() {

@@ -63,6 +63,9 @@ const bookingSchema = new mongoose.Schema(
       },
     },
     budget: { type: String, trim: true, maxlength: 40, default: '' }, // optional, e.g. "$1,500 - $2,500"
+    // The customer ticked "send my booking updates on WhatsApp". Customer WhatsApp messages are only ever sent when this is true.
+    whatsappOptIn: { type: Boolean, default: false },
+    whatsappOptInAt: { type: Date },
 
     date: {
       type: String, required: [true, 'Date is required'],

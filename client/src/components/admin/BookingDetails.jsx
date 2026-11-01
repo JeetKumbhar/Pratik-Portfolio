@@ -129,6 +129,7 @@ export default function BookingDetails({ reference, onClose, onChanged, onDelete
                   <Row label="Name">{b.name}</Row>
                   <Row label="Email"><a href={`mailto:${b.email}`}><Mail size={14} /> {b.email}</a></Row>
                   <Row label="Phone"><a href={`tel:${b.phone.replace(/[^\d+]/g, '')}`}><Phone size={14} /> {b.phone}</a></Row>
+                  <Row label="WhatsApp">{b.whatsappOptIn ? 'Opted in: gets booking updates' : 'Not opted in'}</Row>
                 </dl>
               </section>
 

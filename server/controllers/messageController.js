@@ -3,6 +3,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { MESSAGE_STATUSES } from '../config/constants.js';
 import { sendMessageReceived } from '../utils/messageEmails.js';
+import { notifyNewMessage } from '../utils/notificationHelper.js';
 
 const str = (v) => (typeof v === 'string' ? v : undefined);
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -33,6 +34,7 @@ export const createMessage = asyncHandler(async (req, res) => {
   });
 
   sendMessageReceived(message); // fire and forget
+  notifyNewMessage(message); // WhatsApp to the photographer: after the save, never fails the message
 
   // Nothing from the message is sent back
   res.status(201).json({ success: true, message: "Thanks! I'll get back to you within 24 hours." });

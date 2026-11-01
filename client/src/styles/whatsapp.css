@@ -1,0 +1,31 @@
+/* ===== WhatsApp: opt-in box on the booking form + Admin > Notifications ===== */
+.optin { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; transition: border-color 0.2s; }
+.optin:hover, .optin:focus-within { border-color: var(--gold); }
+.optin input { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--gold); }
+.optin span { display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+.optin small { font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+
+.nt { display: flex; flex-direction: column; gap: 20px; }
+.nt-banner, .nt-notice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; }
+.nt-banner { background: rgba(110, 168, 240, 0.1); border: 1px solid #6ea8f0; color: #6ea8f0; }
+.nt-banner--warn { background: rgba(230, 170, 76, 0.1); border-color: var(--gold); color: var(--gold); }
+.nt-banner small { display: block; margin-top: 2px; opacity: 0.8; }
+.nt-notice { align-items: center; background: rgba(95, 184, 119, 0.1); border: 1px solid var(--success); color: var(--success); }
+.nt-notice--warn { background: rgba(230, 170, 76, 0.1); border-color: var(--gold); color: var(--gold); }
+.nt-notice button { margin-left: auto; background: none; border: 0; font-size: 20px; line-height: 1; color: inherit; }
+
+.nt-list { margin: 0; padding: 0; list-style: none; transition: opacity 0.2s; }
+.nt-list.is-loading { opacity: 0.55; }
+.nt-row { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.nt-list li:last-child { border-bottom: 0; }
+.nt-row__main { grid-column: 1 / -1; min-width: 0; }
+.nt-row__event { font-size: 14px; font-weight: 500; }
+.nt-row__meta { margin-top: 2px; font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.nt-row__meta a { color: var(--gold); border-bottom: 1px solid currentColor; }
+.nt-row__error { margin-top: 6px; font-size: 13px; color: var(--danger); }
+.nt-row__spacer { display: none; }
+@media (min-width: 760px) {
+  .nt-row { grid-template-columns: 1fr 150px 90px; }
+  .nt-row__main { grid-column: auto; }
+  .nt-row__spacer { display: block; }
+}

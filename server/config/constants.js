@@ -50,3 +50,14 @@ export const BOOKING_STATUS_FLOW = {
   completed: [],
   cancelled: ['pending'],
 };
+
+/** WhatsApp notifications: the five events, and the life of one notification */
+export const NOTIFICATION_EVENTS = [
+  'booking_received_customer',
+  'new_booking_admin',
+  'booking_confirmed_customer',
+  'booking_cancelled_customer',
+  'new_message_admin',
+];
+// pending → sent (accepted by WhatsApp) → delivered (reached the phone) → read.  failed / skipped are the other endings.
+export const NOTIFICATION_STATUSES = ['pending', 'sent', 'delivered', 'read', 'failed', 'skipped'];

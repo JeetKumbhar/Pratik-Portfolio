@@ -22,7 +22,10 @@
     "test:blocks": "node scripts/testBlockedDates.js",
     "test:portfolio": "node scripts/testPortfolioApi.js",
     "test:packages": "node scripts/testPackageApi.js",
-    "test:messages": "node scripts/testMessagesApi.js"
+    "test:messages": "node scripts/testMessagesApi.js",
+    "whatsapp:templates": "node scripts/whatsappTemplates.js",
+    "whatsapp:test": "node scripts/whatsappTest.js",
+    "test:notifications": "node scripts/testNotificationsApi.js"
 
   },
   "keywords": [],

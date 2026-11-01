@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarCheck, CalendarDays, Users, Images, Package, Mail, Settings } from 'lucide-react';
+import { LayoutDashboard, CalendarCheck, CalendarDays, Users, Images, Package, Mail, BellRing, Settings } from 'lucide-react';
 
 /**
  * The sidebar links, top to bottom. Logout is a button (not a page), so it lives in AdminSidebar.
@@ -12,5 +12,6 @@ export const ADMIN_NAV = [
   { label: 'Portfolio', to: '/admin/portfolio', icon: Images },
   { label: 'Packages', to: '/admin/packages', icon: Package },
   { label: 'Messages', to: '/admin/messages', icon: Mail },
+  { label: 'Notifications', to: '/admin/notifications', icon: BellRing },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
 ];

@@ -20,6 +20,9 @@ import portfolioRoutes from './routes/portfolioRoutes.js';
 // import clientRoutes from './routes/clientRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 
+import notificationRoutes from './routes/notificationRoutes.js';
+import whatsappWebhookRoutes from './routes/whatsappWebhookRoutes.js';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 const isProd = process.env.NODE_ENV === 'production';
@@ -47,6 +50,11 @@ app.use('/api/blocked-dates', blockedDateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 // app.use('/api/clients', clientRoutes);
 app.use('/api/messages', messageRoutes);
+
+app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes);
+app.use(express.json({ limit: '10kb' }));
+
+app.use('/api/notifications', notificationRoutes);
 
 // ---------- Errors (must be last) ----------
 app.use(notFound);

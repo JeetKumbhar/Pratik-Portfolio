@@ -7,7 +7,7 @@ export default function BookingReview() {
   const { values, goTo, back, selectedPackage, submit, submitting, submitError } = useBooking();
 
   const rows = [
-    { icon: User, label: 'Details', step: 1, main: values.name, sub: `${values.email} · ${values.phone}` },
+    { icon: User, label: 'Details', step: 1, main: values.name, sub: `${values.email} · ${values.phone}${values.whatsappOptIn ? ' · WhatsApp updates on' : ''}` },
     { icon: Camera, label: 'Shoot type', step: 2, main: labelOf(SHOOT_TYPES, values.shootType) },
     { icon: MapPin, label: 'Location', step: 2, main: labelOf(LOCATIONS, values.location), sub: values.locationDetails },
     { icon: CalendarDays, label: 'Date & time', step: 3, main: `${formatDate(values.date)} at ${formatTime(values.time)}`, sub: selectedPackage ? `Duration: ${selectedPackage.duration}` : '' },

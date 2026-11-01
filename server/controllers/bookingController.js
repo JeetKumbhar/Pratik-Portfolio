@@ -5,6 +5,7 @@ import { isDateKey } from '../utils/validators.js';
 import { BOOKING_STATUSES, BOOKING_STATUS_FLOW, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
 import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
+import { notifyBookingCreated, notifyBookingStatusChanged } from '../utils/notificationHelper.js';
 import { computeBookingStats } from '../utils/bookingStats.js';
 
 // ---------------------------------------------------------------- helpers
@@ -51,6 +52,9 @@ export const createBooking = asyncHandler(async (req, res) => {
     styles: strArray(b.styles),
     specialRequest: str(b.specialRequest ?? b.requests),
     budget: str(b.budget),
+    // Only the customer can opt in (at booking). It cannot be changed from the admin screen.
+    whatsappOptIn: b.whatsappOptIn === true,
+    whatsappOptInAt: b.whatsappOptIn === true ? new Date() : undefined,
     date: str(b.date),
     time: str(b.time),
     package: await resolvePackage(packageSlugFrom(b)),
@@ -67,6 +71,7 @@ export const createBooking = asyncHandler(async (req, res) => {
   await booking.save(); // the unique slotKey index is the final guard against a simultaneous double-booking (409)
 
   sendBookingReceived(booking); // fire and forget: an email problem never fails the booking
+  notifyBookingCreated(booking); // WhatsApp: the photographer, then (if they opted in) the customer. Runs after the save and never fails the booking.
 
   res.status(201).json({ success: true, data: booking });
 });
@@ -180,7 +185,10 @@ export const updateBooking = asyncHandler(async (req, res) => {
 
   await booking.save(); // save() (not findByIdAndUpdate) so the slot lock is recalculated
 
-  if (booking.status !== before.status) sendStatusEmail(booking); // confirmed / cancelled only
+  if (booking.status !== before.status) {
+    sendStatusEmail(booking); // confirmed / cancelled only
+    notifyBookingStatusChanged(booking); // WhatsApp to the customer (confirmed / cancelled), if they opted in
+  }
 
   res.json({ success: true, data: booking });
 });

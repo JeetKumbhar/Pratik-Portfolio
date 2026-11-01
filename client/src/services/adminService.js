@@ -89,3 +89,10 @@ export const markAllMessagesRead = (token) => api.post('/messages/mark-all-read'
 
 /** DELETE /api/messages/:id → permanent */
 export const deleteMessage = (token, id) => api.delete(`/messages/${encodeURIComponent(id)}`, { token });
+
+// ---------------------------------------------------------------- WhatsApp notifications
+/** GET /api/notifications → the WHOLE body { total, page, pages, counts:{all,failed,sent,delivered,read,skipped,pending}, config, data:[…] }.  params: { status, event, page, limit } */
+export const getNotifications = (token, params) => api.get('/notifications', { token, params });
+
+/** POST /api/notifications/:id/retry → { message, data }  (409 unless it failed, 503 if WhatsApp is not configured) */
+export const retryNotification = (token, id) => api.post(`/notifications/${encodeURIComponent(id)}/retry`, {}, { token });
