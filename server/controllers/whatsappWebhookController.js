@@ -14,6 +14,9 @@ export const verifyHandshake = (req, res) => {
 // POST /api/webhooks/whatsapp  → delivery reports ("sent / delivered / read / failed") and incoming STOP / START replies
 // The body arrives RAW (see the route) because the signature is calculated over the exact bytes Meta sent.
 export const receiveEvents = asyncHandler(async (req, res) => {
+
+   console.log(`[whatsapp] webhook POST received at ${new Date().toISOString()} | X-Hub-Signature-256 header present: ${Boolean(req.get('X-Hub-Signature-256'))}`);
+
   const secret = process.env.WHATSAPP_APP_SECRET;
   if (!secret) {
     console.error('[whatsapp] webhook ignored: WHATSAPP_APP_SECRET is not set, so the sender cannot be verified');
