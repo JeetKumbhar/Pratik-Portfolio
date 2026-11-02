@@ -28,14 +28,50 @@ const START_WORDS = ['start', 'subscribe', 'opt in', 'optin', 'unstop'];
 export const isStopWord = (text) => STOP_WORDS.includes(normalizeWord(text));
 export const isStartWord = (text) => START_WORDS.includes(normalizeWord(text));
 
+const MAX_TEXT = 4096; // WhatsApp's own limit for a text message
+const MAX_NAME = 100;
+const cleanName = (v) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/ {2,}/g, ' ').trim().slice(0, MAX_NAME) || null : null);
+
+/**
+ * ONE entry of value.messages → { id, from, name, type, text, at } or null when it cannot be trusted.
+ *   id    WhatsApp's message id ("wamid..."), used later to ignore duplicate deliveries
+ *   from  the sender's number: digits with country code ("919876543210")
+ *   name  the sender's WhatsApp profile name, or null (taken from value.contacts, matched by wa_id)
+ *   type  'text', 'image', 'audio', 'reaction' ... (anything WhatsApp sends)
+ *   text  the message text for type 'text'; null for every other type (they carry no text we store yet)
+ *   at    when the customer sent it (Date), or null
+ * Nothing here touches the database.
+ */
+function parseIncoming(m, contacts) {
+  if (typeof m?.id !== 'string' || !m.id || typeof m.from !== 'string' || typeof m.type !== 'string') return null;
+  const from = m.from.replace(/\D/g, '');
+  if (!/^[1-9]\d{7,14}$/.test(from)) return null; // not a usable international number
+
+  const contact = Array.isArray(contacts) ? contacts.find((c) => typeof c?.wa_id === 'string' && c.wa_id.replace(/\D/g, '') === from) : null;
+  const seconds = Number(m.timestamp);
+  const at = m.timestamp && Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : null;
+  const body = m.type === 'text' && typeof m.text?.body === 'string' ? m.text.body : null;
+
+  return {
+    id: m.id,
+    from,
+    name: cleanName(contact?.profile?.name),
+    type: m.type,
+    text: body === null ? null : body.slice(0, MAX_TEXT),
+    at,
+  };
+}
+
 /**
  * The webhook body → what we care about:
  *   statuses: [{ id, status: 'sent'|'delivered'|'read'|'failed', at: Date|null, error }]   (delivery reports for messages we sent)
  *   optOuts:  ['919876543210']    people who texted STOP
  *   optIns:   ['919876543210']    people who texted START
+ *   incoming: [{ id, from, name, type, text, at }]   every message a customer sent us (see parseIncoming). STOP / START
+ *             messages appear here too: they are also messages. Nothing stores or acts on this list yet.
  */
 export function parseWebhook(payload) {
-  const out = { statuses: [], optOuts: [], optIns: [] };
+  const out = { statuses: [], optOuts: [], optIns: [], incoming: [] };
   for (const entry of payload?.entry ?? []) {
     for (const change of entry?.changes ?? []) {
       if (change?.field !== 'messages') continue;
@@ -53,6 +89,10 @@ export function parseWebhook(payload) {
       }
 
       for (const m of value.messages ?? []) {
+        const incoming = parseIncoming(m, value.contacts);
+        if (incoming) out.incoming.push(incoming);
+
+        // STOP / START handling below is unchanged
         if (m?.type !== 'text' || typeof m.from !== 'string') continue;
         const phone = m.from.replace(/\D/g, '');
         if (isStopWord(m.text?.body)) out.optOuts.push(phone);

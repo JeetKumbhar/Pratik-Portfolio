@@ -31,6 +31,7 @@ export const receiveEvents = asyncHandler(async (req, res) => {
     const next = applyStatus(log.status, report.status);
     if (!next) continue;
     log.status = next;
+    if (next === 'delivered' || next === 'read') log.lastError = ''; // it got through after all: drop the old failure text
     if (next === 'delivered') log.deliveredAt = report.at ?? new Date();
     if (next === 'read') { log.readAt = report.at ?? new Date(); log.deliveredAt ??= report.at ?? new Date(); }
     if (next === 'failed') log.lastError = report.error || 'WhatsApp could not deliver the message.';
