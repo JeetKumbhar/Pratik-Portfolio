@@ -32,9 +32,15 @@ if (isProd) app.set('trust proxy', 1); // behind a hosting proxy: needed for cor
 // ---------- Global middleware ----------
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
-app.use(express.json({ limit: '10kb' }));
 if (!isProd) app.use(morgan('dev'));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
+
+// The WhatsApp webhook MUST be mounted BEFORE express.json(). Meta signs the exact bytes it sends, so this route reads
+// the body RAW (express.raw inside the route). If express.json() ran first it would use up the request body, the signature
+// check would then fail, and every genuine webhook call from Meta would be answered with 401.
+app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes);
+
+app.use(express.json({ limit: '10kb' })); // everything mounted below this line receives parsed JSON
 
 // ---------- Routes ----------
 const DB_STATES = ['disconnected', 'connected', 'connecting', 'disconnecting'];
@@ -50,9 +56,6 @@ app.use('/api/blocked-dates', blockedDateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 // app.use('/api/clients', clientRoutes);
 app.use('/api/messages', messageRoutes);
-
-app.use('/api/webhooks/whatsapp', whatsappWebhookRoutes);
-app.use(express.json({ limit: '10kb' }));
 
 app.use('/api/notifications', notificationRoutes);
 
