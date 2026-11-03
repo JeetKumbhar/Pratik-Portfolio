@@ -205,8 +205,9 @@
   background: linear-gradient(90deg, #ff6b6b, #4facfe); transform: scaleX(0); transform-origin: right;
   transition: transform 0.3s ease;
 }
-.footer__credit-link:hover { transform: translateY(-2px); }
 .footer__credit-link:hover::after { transform: scaleX(1); transform-origin: left; }
+.footer__credit-link--reset::after { transform: scaleX(0); transition: none; }
+.footer__credit-link:hover { transform: translateY(-2px); }
 @keyframes heartbeat {
   0%, 100% { transform: scale(1); }
   15% { transform: scale(1.3); }

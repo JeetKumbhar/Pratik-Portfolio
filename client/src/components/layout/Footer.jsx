@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Mail, Phone } from 'lucide-react';
 import SocialLinks from './SocialLinks';
 import { SITE } from '../../utils/constants';
 
 export default function Footer() {
+  const [creditLinkClicked, setCreditLinkClicked] = useState(false);
+
   return (
     <footer className="footer">
       <div className="container">
@@ -36,10 +39,12 @@ export default function Footer() {
           <span className="footer__heart" aria-label="love" role="img">❤️</span>
           <span>by</span>
           <a
-            href="https://www.linkedin.com/in/jeetkumbhar/"
+            href="https://github.com/JeetKumbhar"
             target="_blank"
             rel="noopener noreferrer"
-            className="footer__credit-link"
+            className={`footer__credit-link${creditLinkClicked ? ' footer__credit-link--reset' : ''}`}
+            onClick={() => setCreditLinkClicked(true)}
+            onMouseLeave={() => setCreditLinkClicked(false)}
           >
             Jeet
           </a>
