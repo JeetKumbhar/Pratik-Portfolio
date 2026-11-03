@@ -6,7 +6,7 @@ export default function SocialLinks({ includePinterest = true }) {
     { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
     { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
     // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-    ...(includePinterest ? [{ label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP }] : []),
+    // ...(includePinterest ? [{ label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP }] : []),
   ];
   return (
     <div className="footer__social">

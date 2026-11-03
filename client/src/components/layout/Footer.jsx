@@ -30,6 +30,20 @@ export default function Footer() {
             <Link to="/terms">Terms</Link>
           </div>
         </div>
+
+        <div className="footer__credit">
+          <span>Made with</span>
+          <span className="footer__heart" aria-label="love" role="img">❤️</span>
+          <span>by</span>
+          <a
+            href="https://github.com/JeetKumbhar"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer__credit-link"
+          >
+            Jeet
+          </a>
+        </div>
       </div>
     </footer>
   );
