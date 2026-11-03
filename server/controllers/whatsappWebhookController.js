@@ -11,6 +11,16 @@ export const verifyHandshake = (req, res) => {
   return res.sendStatus(403);
 };
 
+// TEMPORARY DIAGNOSTIC: why did verifySignature() say no? Returns a fixed label only (never the header, body or secret).
+// Same order of checks as verifySignature(), so the label matches what it actually tripped over.
+const signatureFailureReason = (rawBody, header) => {
+  if (typeof header !== 'string' || !header) return 'no-header';
+  if (!Buffer.isBuffer(rawBody)) return 'body-not-buffer';
+  const [scheme, hex] = header.split('=');
+  if (scheme !== 'sha256' || !/^[a-f0-9]{64}$/i.test(hex ?? '')) return 'bad-format';
+  return 'mismatch';
+};
+
 // POST /api/webhooks/whatsapp  → delivery reports ("sent / delivered / read / failed") and incoming STOP / START replies
 // The body arrives RAW (see the route) because the signature is calculated over the exact bytes Meta sent.
 export const receiveEvents = asyncHandler(async (req, res) => {
@@ -22,11 +32,18 @@ export const receiveEvents = asyncHandler(async (req, res) => {
     console.error('[whatsapp] webhook ignored: WHATSAPP_APP_SECRET is not set, so the sender cannot be verified');
     return res.sendStatus(503);
   }
-  if (!verifySignature(req.body, req.get('X-Hub-Signature-256'), secret)) return res.sendStatus(401); // not from Meta: ignore
+  if (!verifySignature(req.body, req.get('X-Hub-Signature-256'), secret)) {
+    console.log(`[whatsapp] webhook rejected (401): signature ${signatureFailureReason(req.body, req.get('X-Hub-Signature-256'))}`); // TEMPORARY DIAGNOSTIC
+    return res.sendStatus(401); // not from Meta: ignore
+  }
 
   let payload;
-  try { payload = JSON.parse(req.body.toString('utf8')); } catch { return res.sendStatus(400); }
-  const { statuses, optOuts, optIns } = parseWebhook(payload);
+  try { payload = JSON.parse(req.body.toString('utf8')); } catch {
+    console.log(`[whatsapp] webhook rejected (400): invalid JSON (${req.body.length} bytes)`); // TEMPORARY DIAGNOSTIC
+    return res.sendStatus(400);
+  }
+  const { statuses, optOuts, optIns, incoming } = parseWebhook(payload);
+  console.log(`[whatsapp] parsed: statuses=${statuses.length} incoming=${incoming.length} optOuts=${optOuts.length} optIns=${optIns.length}`); // TEMPORARY DIAGNOSTIC
 
   for (const report of statuses) {
     const log = await Notification.findOne({ waMessageId: report.id });
@@ -44,5 +61,6 @@ export const receiveEvents = asyncHandler(async (req, res) => {
   for (const phone of optOuts) await WhatsAppOptOut.updateOne({ phone }, { $setOnInsert: { phone, source: 'whatsapp-stop' } }, { upsert: true });
   for (const phone of optIns) await WhatsAppOptOut.deleteOne({ phone });
 
+  console.log('[whatsapp] webhook processed, returning 200'); // TEMPORARY DIAGNOSTIC
   return res.sendStatus(200); // quickly, or Meta keeps re-sending
 });
