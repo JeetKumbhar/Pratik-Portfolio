@@ -33,10 +33,11 @@ const MAX_NAME = 100;
 const cleanName = (v) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/ {2,}/g, ' ').trim().slice(0, MAX_NAME) || null : null);
 
 /**
- * ONE entry of value.messages → { id, from, name, type, text, at } or null when it cannot be trusted.
+ * ONE entry of value.messages → { id, from, name, contactId, type, text, at } or null when it cannot be trusted.
  *   id    WhatsApp's message id ("wamid..."), used later to ignore duplicate deliveries
  *   from  the sender's number: digits with country code ("919876543210")
  *   name  the sender's WhatsApp profile name, or null (taken from value.contacts, matched by wa_id)
+ *   contactId  WhatsApp's own id (wa_id) of that contact, or null when no contact was matched
  *   type  'text', 'image', 'audio', 'reaction' ... (anything WhatsApp sends)
  *   text  the message text for type 'text'; null for every other type (they carry no text we store yet)
  *   at    when the customer sent it (Date), or null
@@ -56,6 +57,7 @@ function parseIncoming(m, contacts) {
     id: m.id,
     from,
     name: cleanName(contact?.profile?.name),
+    contactId: typeof contact?.wa_id === 'string' ? contact.wa_id.replace(/\D/g, '') || null : null,
     type: m.type,
     text: body === null ? null : body.slice(0, MAX_TEXT),
     at,
@@ -67,8 +69,8 @@ function parseIncoming(m, contacts) {
  *   statuses: [{ id, status: 'sent'|'delivered'|'read'|'failed', at: Date|null, error }]   (delivery reports for messages we sent)
  *   optOuts:  ['919876543210']    people who texted STOP
  *   optIns:   ['919876543210']    people who texted START
- *   incoming: [{ id, from, name, type, text, at }]   every message a customer sent us (see parseIncoming). STOP / START
- *             messages appear here too: they are also messages. Nothing stores or acts on this list yet.
+ *   incoming: [{ id, from, name, contactId, type, text, at }]   every message a customer sent us (see parseIncoming). STOP / START
+ *             messages appear here too: they are also messages. The webhook controller stores this list (utils/whatsappInbox.js).
  */
 export function parseWebhook(payload) {
   const out = { statuses: [], optOuts: [], optIns: [], incoming: [] };

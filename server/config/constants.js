@@ -61,3 +61,10 @@ export const NOTIFICATION_EVENTS = [
 ];
 // pending → sent (accepted by WhatsApp) → delivered (reached the phone) → read.  failed / skipped are the other endings.
 export const NOTIFICATION_STATUSES = ['pending', 'sent', 'delivered', 'read', 'failed', 'skipped'];
+
+/** WhatsApp inbox (conversations with customers and the messages in them) */
+export const WA_MESSAGE_TYPES = ['text', 'image', 'audio', 'video', 'document', 'location', 'sticker', 'contacts', 'interactive', 'unknown'];
+export const WA_DIRECTIONS = ['incoming', 'outgoing'];
+export const WA_CONVERSATION_STATUSES = ['open', 'closed'];
+// received → counted (this message was added to the unread count, exactly once) → processed (conversation summary updated)
+export const WA_PROCESSING_STATUSES = ['received', 'counted', 'processed'];

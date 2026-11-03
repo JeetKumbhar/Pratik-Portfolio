@@ -7,3 +7,5 @@ export { default as BlockedDate } from './BlockedDate.js';
 export { default as Message } from './Message.js';
 export { default as Notification } from './Notification.js';
 export { default as WhatsAppOptOut } from './WhatsAppOptOut.js';
+export { default as WhatsAppConversation } from './WhatsAppConversation.js';
+export { default as WhatsAppMessage } from './WhatsAppMessage.js';

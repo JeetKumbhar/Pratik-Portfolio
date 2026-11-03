@@ -1,6 +1,7 @@
 import { Notification, WhatsAppOptOut } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { applyStatus, parseWebhook, safeEqual, verifySignature } from '../utils/whatsappWebhook.js';
+import { isPermanentDataError, storeIncomingMessage } from '../utils/whatsappInbox.js';
 
 // GET /api/webhooks/whatsapp   → the one-time handshake when you register the webhook in Meta's dashboard
 export const verifyHandshake = (req, res) => {
@@ -11,39 +12,37 @@ export const verifyHandshake = (req, res) => {
   return res.sendStatus(403);
 };
 
-// TEMPORARY DIAGNOSTIC: why did verifySignature() say no? Returns a fixed label only (never the header, body or secret).
-// Same order of checks as verifySignature(), so the label matches what it actually tripped over.
-const signatureFailureReason = (rawBody, header) => {
-  if (typeof header !== 'string' || !header) return 'no-header';
-  if (!Buffer.isBuffer(rawBody)) return 'body-not-buffer';
-  const [scheme, hex] = header.split('=');
-  if (scheme !== 'sha256' || !/^[a-f0-9]{64}$/i.test(hex ?? '')) return 'bad-format';
-  return 'mismatch';
-};
-
-// POST /api/webhooks/whatsapp  → delivery reports ("sent / delivered / read / failed") and incoming STOP / START replies
+// POST /api/webhooks/whatsapp  → customer messages (stored in the inbox), delivery reports ("sent / delivered / read / failed"), STOP / START replies
 // The body arrives RAW (see the route) because the signature is calculated over the exact bytes Meta sent.
 export const receiveEvents = asyncHandler(async (req, res) => {
-
-   console.log(`[whatsapp] webhook POST received at ${new Date().toISOString()} | X-Hub-Signature-256 header present: ${Boolean(req.get('X-Hub-Signature-256'))}`);
-
   const secret = process.env.WHATSAPP_APP_SECRET;
   if (!secret) {
     console.error('[whatsapp] webhook ignored: WHATSAPP_APP_SECRET is not set, so the sender cannot be verified');
     return res.sendStatus(503);
   }
-  if (!verifySignature(req.body, req.get('X-Hub-Signature-256'), secret)) {
-    console.log(`[whatsapp] webhook rejected (401): signature ${signatureFailureReason(req.body, req.get('X-Hub-Signature-256'))}`); // TEMPORARY DIAGNOSTIC
-    return res.sendStatus(401); // not from Meta: ignore
-  }
+  if (!verifySignature(req.body, req.get('X-Hub-Signature-256'), secret)) return res.sendStatus(401); // not from Meta: ignore
 
   let payload;
-  try { payload = JSON.parse(req.body.toString('utf8')); } catch {
-    console.log(`[whatsapp] webhook rejected (400): invalid JSON (${req.body.length} bytes)`); // TEMPORARY DIAGNOSTIC
-    return res.sendStatus(400);
-  }
+  try { payload = JSON.parse(req.body.toString('utf8')); } catch { return res.sendStatus(400); }
   const { statuses, optOuts, optIns, incoming } = parseWebhook(payload);
-  console.log(`[whatsapp] parsed: statuses=${statuses.length} incoming=${incoming.length} optOuts=${optOuts.length} optIns=${optIns.length}`); // TEMPORARY DIAGNOSTIC
+
+  // Customer messages: each one is stored once (see utils/whatsappInbox.js). One bad message never stops the others.
+  // A database problem is remembered and answered with a 500 at the end, so Meta sends the whole payload again; everything below is safe to repeat.
+  // Logs name the kind of error only: never a phone number, name, text or message id.
+  let notStored = 0;
+  for (const message of incoming) {
+    try {
+      const { outcome } = await storeIncomingMessage(message);
+      if (outcome === 'invalid') console.error('[whatsapp] skipped an incoming message that cannot be stored (unusable data)');
+    } catch (err) {
+      if (isPermanentDataError(err)) {
+        console.error(`[whatsapp] skipped an incoming message that cannot be stored (${err.name})`); // retrying could never fix it
+      } else {
+        notStored += 1;
+        console.error(`[whatsapp] could not store an incoming message (${err?.name ?? 'Error'})`);
+      }
+    }
+  }
 
   for (const report of statuses) {
     const log = await Notification.findOne({ waMessageId: report.id });
@@ -61,6 +60,10 @@ export const receiveEvents = asyncHandler(async (req, res) => {
   for (const phone of optOuts) await WhatsAppOptOut.updateOne({ phone }, { $setOnInsert: { phone, source: 'whatsapp-stop' } }, { upsert: true });
   for (const phone of optIns) await WhatsAppOptOut.deleteOne({ phone });
 
-  console.log('[whatsapp] webhook processed, returning 200'); // TEMPORARY DIAGNOSTIC
+  if (notStored) {
+    console.error(`[whatsapp] ${notStored} incoming message(s) could not be stored: answering 500 so Meta retries`);
+    return res.sendStatus(500);
+  }
+
   return res.sendStatus(200); // quickly, or Meta keeps re-sending
 });

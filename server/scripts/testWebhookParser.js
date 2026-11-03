@@ -22,7 +22,13 @@ console.log('--- incoming customer messages ---');
 test('text message: phone, name, message id, timestamp, type and text are all extracted', () => {
   const { incoming } = parseWebhook(hook({ contacts: [contact()], messages: [textMsg()] }));
   assert.equal(incoming.length, 1);
-  assert.deepEqual(incoming[0], { id: 'wamid.AAA', from: '919876543210', name: 'Sarah Jones', type: 'text', text: 'Hello Pratik', at: new Date(1793000000 * 1000) });
+  assert.deepEqual(incoming[0], { id: 'wamid.AAA', from: '919876543210', name: 'Sarah Jones', contactId: '919876543210', type: 'text', text: 'Hello Pratik', at: new Date(1793000000 * 1000) });
+});
+
+test('contactId is WhatsApp\'s wa_id of the matched contact, and null when there is no matching contact', () => {
+  assert.equal(parseWebhook(hook({ contacts: [contact()], messages: [textMsg()] })).incoming[0].contactId, '919876543210');
+  assert.equal(parseWebhook(hook({ messages: [textMsg()] })).incoming[0].contactId, null);
+  assert.equal(parseWebhook(hook({ contacts: [contact('Someone Else', '911111111111')], messages: [textMsg()] })).incoming[0].contactId, null);
 });
 
 test('emoji, non-English text and line breaks are kept exactly', () => {
