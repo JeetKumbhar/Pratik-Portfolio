@@ -36,7 +36,7 @@ export default function Footer() {
           <span className="footer__heart" aria-label="love" role="img">❤️</span>
           <span>by</span>
           <a
-            href="https://github.com/JeetKumbhar"
+            href="www.linkedin.com/in/jeetkumbhar"
             target="_blank"
             rel="noopener noreferrer"
             className="footer__credit-link"
