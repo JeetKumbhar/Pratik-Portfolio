@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Calendar, ChevronRight, Play, Mouse } from 'lucide-react';
-import { FaInstagram, FaFacebookF, FaPinterestP, FaBehance } from 'react-icons/fa6';
+import { FaInstagram, FaWhatsapp } from 'react-icons/fa6';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
 import { BOOKING_PATH, SITE } from '../../utils/constants';
@@ -8,9 +8,10 @@ import { HERO_STATS, IMAGES } from './homeData';
 
 const RAIL = [
   { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-  { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-  { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
-  { label: 'Behance', href: 'https://behance.net/', Icon: FaBehance },
+  { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
+  // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
+  // { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
+  // { label: 'Behance', href: 'https://behance.net/', Icon: FaBehance },
 ];
 
 export default function HeroSection() {
@@ -44,7 +45,7 @@ export default function HeroSection() {
         <ul className="hero__rail" aria-label="Social links">
           {RAIL.map(({ label, href, Icon }) => (
             <li key={label}>
-              <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label}><Icon size={18} /></a>
+              <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label}><Icon size={22} /></a>
             </li>
           ))}
         </ul>

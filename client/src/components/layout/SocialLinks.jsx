@@ -1,11 +1,12 @@
-import { FaInstagram, FaFacebookF, FaPinterestP } from 'react-icons/fa6';
+import { FaInstagram, FaWhatsapp, FaFacebookF, FaPinterestP } from 'react-icons/fa6';
 import { SITE } from '../../utils/constants';
 
-export default function SocialLinks() {
+export default function SocialLinks({ includePinterest = true }) {
   const items = [
     { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-    { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-    { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
+    { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
+    // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
+    ...(includePinterest ? [{ label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP }] : []),
   ];
   return (
     <div className="footer__social">

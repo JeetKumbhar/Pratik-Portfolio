@@ -77,7 +77,7 @@ export default function ContactForm() {
 
       <div className="contact-form__row">
         <Input id="contact-phone" name="phone" type="tel" label="Phone (optional)" autoComplete="tel" icon={<Phone size={18} />}
-          placeholder="+1 (123) 456-7890" value={values.phone} onChange={set('phone')} error={errors.phone} />
+          placeholder="+91 xxxxx xxxxx" value={values.phone} onChange={set('phone')} error={errors.phone} />
         <Select id="contact-subject" name="subject" label="What's this about?" required icon={<MessageSquare size={18} />}
           placeholder="Select a topic" options={SUBJECT_OPTIONS} value={values.subject} onChange={set('subject')} error={errors.subject} />
       </div>

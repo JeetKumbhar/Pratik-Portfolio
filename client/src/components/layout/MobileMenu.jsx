@@ -51,7 +51,7 @@ export default function MobileMenu({ isOpen, onClose }) {
           <Button to={BOOKING_PATH} fullWidth icon={<Calendar size={16} />} onClick={onClose}>
             Book a shoot
           </Button>
-          <SocialLinks />
+          <SocialLinks includePinterest={false} />
         </div>
       </aside>
     </div>,

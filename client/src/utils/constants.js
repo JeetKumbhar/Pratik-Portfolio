@@ -5,6 +5,7 @@ export const SITE = {
   phone: '+91 84467 41308',
   social: {
     instagram: 'https://www.instagram.com/pratikshelke_photography?stkn=MWcxcTMwYnNrOTht',
+    whatsapp: 'https://wa.me/918446741308',
     facebook: 'https://facebook.com/',
     pinterest: 'https://pinterest.com/',
   },

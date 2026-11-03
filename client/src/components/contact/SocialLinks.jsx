@@ -4,9 +4,9 @@ import { WHATSAPP_URL } from './contactData';
 
 const LINKS = [
   { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-  { label: 'WhatsApp', href: WHATSAPP_URL, Icon: FaWhatsapp },
-  { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-  { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
+  { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
+  // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
+  // { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
 ];
 
 export default function SocialLinks() {
