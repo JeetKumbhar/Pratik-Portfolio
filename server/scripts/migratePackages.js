@@ -24,7 +24,7 @@ try {
 
   const all = await Package.find().sort({ sortOrder: 1 }).lean();
   console.log('\nPackages now:');
-  all.forEach((p) => console.log(`  ${p.name}  |  $${p.price}  |  ${p.duration}  |  category: ${p.category}  |  active: ${p.active}  |  "${p.description}"`));
+  all.forEach((p) => console.log(`  ${p.name}  |  ₹${p.price}  |  ${p.duration}  |  category: ${p.category}  |  active: ${p.active}  |  "${p.description}"`));
 } catch (err) {
   console.error('Migration failed:', err.message);
   process.exitCode = 1;

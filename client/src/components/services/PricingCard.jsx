@@ -4,7 +4,7 @@ import Button from '../common/Button';
 import { cx } from '../../utils/helpers';
 import { BOOKING_PATH } from '../../utils/constants';
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }); // keep in sync with money() in booking/bookingData.js
 
 /** pkg: { id, name, tagline, price, duration, features[], popular } */
 export default function PricingCard({ pkg }) {

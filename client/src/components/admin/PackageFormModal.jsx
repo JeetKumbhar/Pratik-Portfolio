@@ -85,7 +85,7 @@ export default function PackageFormModal({ isOpen, pkg, onClose, onSaved }) {
           hint={editing ? `Link name: "${pkg.slug}" (used in booking links, it never changes when you rename)` : undefined} />
 
         <div className="pk-form__row">
-          <Input id="pk-price" label="Price (USD)" required type="number" min="0" step="1" inputMode="decimal" placeholder="1200" value={form.price} onChange={(e) => set({ price: e.target.value })} error={errors.price} />
+          <Input id="pk-price" label="Price (INR)" required type="number" min="0" step="1" inputMode="decimal" placeholder="1200" value={form.price} onChange={(e) => set({ price: e.target.value })} error={errors.price} />
           <Input id="pk-duration" label="Duration (as shown)" required maxLength={40} placeholder="e.g. 2 hours" value={form.duration} onChange={(e) => changeDuration(e.target.value)} error={errors.duration} />
         </div>
 

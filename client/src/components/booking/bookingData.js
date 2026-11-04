@@ -1,5 +1,5 @@
 import {
-  Heart, Sparkles, User, CalendarDays, Briefcase, Lightbulb,
+  Heart, Sparkles, User, Baby, CalendarDays, Briefcase, Lightbulb,
   Building2, Trees, Home, HelpCircle, CalendarCheck, Camera, Clock, ShieldCheck,
 } from 'lucide-react';
 
@@ -15,7 +15,8 @@ export const SHOOT_TYPES = [
   { id: 'wedding', label: 'Wedding', text: 'Ceremony and celebration', icon: Heart },
   { id: 'pre-wedding', label: 'Pre-Wedding', text: 'Couple sessions', icon: Sparkles },
   { id: 'portrait', label: 'Portrait', text: 'Individuals, family, branding', icon: User },
-  { id: 'events', label: 'Events', text: 'Corporate, parties, occasions', icon: CalendarDays },
+  { id: 'baby-shoot', label: 'Baby-Shoot', text: '1st Birthday, baby shower', icon: Baby },
+  { id: 'events', label: 'Events', text: 'Car delivery, parties, corporate, occasions', icon: CalendarDays },
   { id: 'commercial', label: 'Commercial', text: 'Brands, products, campaigns', icon: Briefcase },
   { id: 'custom', label: 'Custom', text: 'Something different?', icon: Lightbulb },
 ];
@@ -46,7 +47,8 @@ export const TRUST = [
 
 // ---------- helpers ----------
 export const labelOf = (list, id) => list.find((i) => i.id === id)?.label ?? '';
-export const money = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+// Indian rupees with Indian digit grouping: 1200 → ₹1,200 and 150000 → ₹1,50,000
+export const money = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
 const pad = (n) => String(n).padStart(2, '0');
 export const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

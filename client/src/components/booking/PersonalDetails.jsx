@@ -30,7 +30,7 @@ export default function PersonalDetails() {
         <Input id="book-email" name="email" type="email" label="Email address" required autoComplete="email" icon={<Mail size={18} />}
           placeholder="you@example.com" value={values.email} onChange={set('email')} error={errors.email} />
         <Input id="book-phone" name="phone" type="tel" label="Phone number" required autoComplete="tel" icon={<Phone size={18} />}
-          placeholder="+1 (123) 456-7890" value={values.phone} onChange={set('phone')} error={errors.phone} />
+          placeholder="+91 xxxxx xxxxx" value={values.phone} onChange={set('phone')} error={errors.phone} />
       </div>
       {/* Unticked by default: WhatsApp updates are only ever sent to people who choose them */}
       <label className="optin">
@@ -38,7 +38,7 @@ export default function PersonalDetails() {
         <span>
           Send my booking updates on WhatsApp
           <small>
-            We will message the phone number above about this booking only (received, confirmed, cancelled). Include your country code, like +1.
+            We will message the phone number above about this booking only (received, confirmed, cancelled). Include your country code, like +91.
             Reply STOP at any time to opt out.
           </small>
         </span>

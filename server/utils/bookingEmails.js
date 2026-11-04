@@ -18,7 +18,7 @@ const summary = (b) => [
   `Date: ${fmtDate(b.date)} at ${fmtTime(b.time)}`,
   `Location: ${b.location}${b.locationDetails ? ` (${oneLine(b.locationDetails)})` : ''}`,
   `People: ${b.numberOfPeople}`,
-  `Package: ${b.package.name}${b.package.price != null ? ` ($${b.package.price})` : ' (custom quote)'}`,
+  `Package: ${b.package.name}${b.package.price != null ? ` (₹${Number(b.package.price).toLocaleString('en-IN')})` : ' (custom quote)'}`,
 ].join('\n');
 
 const adminAddress = () => process.env.ADMIN_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;

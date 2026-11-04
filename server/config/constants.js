@@ -3,7 +3,7 @@
  * These MUST match the lists in the frontend (components/booking/bookingData.js,
  * portfolioData.js, contactData.js). Change both together.
  */
-export const SHOOT_TYPES = ['wedding', 'pre-wedding', 'portrait', 'events', 'commercial', 'custom'];
+export const SHOOT_TYPES = ['wedding', 'pre-wedding', 'portrait', 'baby-shoot', 'events', 'commercial', 'custom'];
 export const LOCATIONS = ['studio', 'outdoor', 'client', 'undecided'];
 export const STYLES = ['Natural', 'Moody', 'Bright & Airy', 'Cinematic', 'Dark & Dramatic', 'Warm & Cozy', 'Minimal', 'Editorial'];
 export const MAX_STYLES = 3;
@@ -68,5 +68,9 @@ export const WA_DIRECTIONS = ['incoming', 'outgoing'];
 export const WA_CONVERSATION_STATUSES = ['open', 'closed'];
 // received → counted (this message was added to the unread count, exactly once) → processed (conversation summary updated)
 export const WA_PROCESSING_STATUSES = ['received', 'counted', 'processed'];
-// Outgoing replies: sending (we are calling WhatsApp) → sent (WhatsApp accepted it) → delivered → read.  failed is the other ending.
-export const WA_DELIVERY_STATUSES = ['sending', 'sent', 'delivered', 'read', 'failed'];
+export const WA_DELIVERY_STATUSES = [
+  'sent',
+  'delivered',
+  'read',
+  'failed'
+];

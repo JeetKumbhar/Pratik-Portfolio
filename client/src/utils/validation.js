@@ -95,7 +95,7 @@ export function validateEmail(email) {
 
 export function validatePhone(phone, { required = true } = {}) {
   if (isBlank(phone)) return required ? 'Phone number is required.' : '';
-  if (!isPhone(phone)) return 'Enter a valid phone number (7 to 15 digits, e.g. +1 123 456 7890).';
+  if (!isPhone(phone)) return 'Enter a valid phone number (7 to 15 digits, e.g. +91 98765 43210).';
   return '';
 }
 

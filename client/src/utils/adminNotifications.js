@@ -56,10 +56,12 @@ export function buildNotifications({ stats, recent = [], unreadMessages = 0, now
   (stats?.next ?? []).forEach((b) => {
     const diff = Math.round((toDate(b.date) - startOfDay(now)) / DAY);
     if (diff < 0 || diff > 7) return;
+    const type = b.shootType.replace(/-/g, ' ');
+    const shootName = type.endsWith('shoot') ? type : `${type} shoot`; // "wedding shoot", "baby shoot" (not "baby shoot shoot")
     items.push({
       id: `shoot-${b.reference}`, kind: 'shoot',
       title: `${dayLabel(b.date, now)} at ${fmtTime(b.time)}: ${b.name}`,
-      detail: `${b.shootType.replace('-', ' ')} shoot${b.status === 'pending' ? ' (not confirmed yet)' : ''}`,
+      detail: `${shootName}${b.status === 'pending' ? ' (not confirmed yet)' : ''}`,
       to: `/admin/bookings?view=${b.reference}`,
     });
   });

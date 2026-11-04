@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Link2, Upload } from 'lucide-react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
@@ -36,6 +36,9 @@ export default function PhotoFormModal({ isOpen, photo, onClose, onSaved }) {
   const [progress, setProgress] = useState(0);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const closeModal = useCallback(() => {
+    if (!saving) onClose();
+  }, [saving, onClose]);
 
   // A fresh form each time the dialog opens
   useEffect(() => {
@@ -118,7 +121,7 @@ export default function PhotoFormModal({ isOpen, photo, onClose, onSaved }) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => !saving && onClose()}
+      onClose={closeModal}
       title={editing ? 'Edit photo' : 'Add photo'}
       size="md"
       footer={(

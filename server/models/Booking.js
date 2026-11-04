@@ -62,7 +62,7 @@ const bookingSchema = new mongoose.Schema(
         validate: { validator: Number.isInteger, message: 'Duration must be a whole number of hours' },
       },
     },
-    budget: { type: String, trim: true, maxlength: 40, default: '' }, // optional, e.g. "$1,500 - $2,500"
+    budget: { type: String, trim: true, maxlength: 40, default: '' }, // optional, e.g. "₹15,000 - ₹25,000"
     // The customer ticked "send my booking updates on WhatsApp". Customer WhatsApp messages are only ever sent when this is true.
     whatsappOptIn: { type: Boolean, default: false },
     whatsappOptInAt: { type: Date },
