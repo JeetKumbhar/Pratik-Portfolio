@@ -38,6 +38,7 @@ export default function Footer() {
           <span>Made with</span>
           <span className="footer__heart" aria-label="love" role="img">❤️</span>
           <span>by</span>
+          {' '}
           <a
             href="https://www.linkedin.com/in/jeetkumbhar/"
             target="_blank"

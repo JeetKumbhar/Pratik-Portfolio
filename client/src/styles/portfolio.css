@@ -1,6 +1,6 @@
 /* ===== Portfolio page ===== */
 .portfolio { padding-top: 56px; }
-.portfolio__results { animation: fade-in 0.4s; }
+.portfolio__results { max-width: 820px; margin-inline: auto; animation: fade-in 0.4s; }
 
 /* Filter */
 .filter { margin: 36px 0 32px; }
@@ -21,7 +21,6 @@
 .gallery-grid { column-count: 2; column-gap: 14px; }
 .gallery-grid__item { break-inside: avoid; margin-bottom: 14px; }
 @media (min-width: 800px) { .gallery-grid { column-count: 3; column-gap: 18px; } .gallery-grid__item { margin-bottom: 18px; } }
-@media (min-width: 1200px) { .gallery-grid { column-count: 4; } }
 
 /* Card */
 .gallery-card { display: block; width: 100%; padding: 0; background: none; border: 0; text-align: left; border-radius: var(--radius-md); }
