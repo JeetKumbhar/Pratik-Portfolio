@@ -14,18 +14,18 @@ async function findPhoto(id) {
   return photo;
 }
 
-async function clearFeaturedInCategory(category, exceptId) {
+async function clearFeaturedInCategory(category, field, exceptId) {
   await Portfolio.updateMany(
-    { category, featured: true, ...(exceptId && { _id: { $ne: exceptId } }) },
-    { $set: { featured: false } }
+    { category, [field]: true, ...(exceptId && { _id: { $ne: exceptId } }) },
+    { $set: { [field]: false } }
   );
 }
 
 // ---------------------------------------------------------------- GET /api/portfolio  (PUBLIC)
-// ?category=wedding   → published photos only, in display order
+// ?category=wedding, ?featured=true or ?serviceFeatured=true → published photos only, in display order
 export const getPublicPortfolio = asyncHandler(async (req, res) => {
   const filter = { isPublished: true };
-  const { category, featured } = req.query;
+  const { category, featured, serviceFeatured } = req.query;
   if (category !== undefined) {
     if (typeof category !== 'string' || !PORTFOLIO_CATEGORIES.includes(category)) {
       throw httpError(400, `Invalid category. Use one of: ${PORTFOLIO_CATEGORIES.join(', ')}`);
@@ -36,8 +36,12 @@ export const getPublicPortfolio = asyncHandler(async (req, res) => {
     if (featured !== 'true' && featured !== 'false') throw httpError(400, 'Featured must be true or false');
     filter.featured = featured === 'true';
   }
+  if (serviceFeatured !== undefined) {
+    if (serviceFeatured !== 'true' && serviceFeatured !== 'false') throw httpError(400, 'Service featured must be true or false');
+    filter.serviceFeatured = serviceFeatured === 'true';
+  }
   const items = await Portfolio.find(filter).sort({ sortOrder: 1, createdAt: -1 }).limit(500);
-  res.set('Cache-Control', featured === undefined ? 'public, max-age=60' : 'no-store');
+  res.set('Cache-Control', featured === undefined && serviceFeatured === undefined ? 'public, max-age=60' : 'no-store');
   res.json({ success: true, count: items.length, data: items });
 });
 
@@ -56,7 +60,7 @@ export const getUploadSignature = (req, res) => {
   res.json({ success: true, data: createUploadSignature() });
 };
 
-// POST /api/portfolio   { title, category, description?, featured?, isPublished?, image: { url, publicId?, width?, height? } }
+// POST /api/portfolio   { title, category, description?, featured?, serviceFeatured?, isPublished?, image: { url, publicId?, width?, height? } }
 export const createPhoto = asyncHandler(async (req, res) => {
   const b = req.body ?? {};
   const img = b.image && typeof b.image === 'object' ? b.image : {};
@@ -72,19 +76,21 @@ export const createPhoto = asyncHandler(async (req, res) => {
     description: str(b.description),
     alt: str(b.alt),
     featured: bool(b.featured),
+    serviceFeatured: bool(b.serviceFeatured),
     isPublished: bool(b.isPublished),
     sortOrder: num(b.sortOrder),
   });
-  if (photo.featured) {
+  if (photo.featured || photo.serviceFeatured) {
     await photo.validate();
-    await clearFeaturedInCategory(photo.category);
+    if (photo.featured) await clearFeaturedInCategory(photo.category, 'featured');
+    if (photo.serviceFeatured) await clearFeaturedInCategory(photo.category, 'serviceFeatured');
   }
   await photo.save();
   res.status(201).json({ success: true, data: photo });
 });
 
-// PATCH /api/portfolio/:id   → title, category, description, alt, featured, isPublished, sortOrder (the image itself cannot be swapped: delete and add a new one)
-const EDITABLE = ['title', 'category', 'description', 'alt', 'featured', 'isPublished', 'sortOrder'];
+// PATCH /api/portfolio/:id   → title, category, description, alt, featured, serviceFeatured, isPublished, sortOrder (the image itself cannot be swapped: delete and add a new one)
+const EDITABLE = ['title', 'category', 'description', 'alt', 'featured', 'serviceFeatured', 'isPublished', 'sortOrder'];
 
 export const updatePhoto = asyncHandler(async (req, res) => {
   const body = req.body ?? {};
@@ -98,9 +104,10 @@ export const updatePhoto = asyncHandler(async (req, res) => {
   if (!touched) throw httpError(400, `Nothing to update. You can change: ${EDITABLE.join(', ')}.`);
   if (alwaysFollowsTitle && !('alt' in body)) photo.alt = photo.title;
 
-  if (photo.featured) {
+  if (photo.featured || photo.serviceFeatured) {
     await photo.validate();
-    await clearFeaturedInCategory(photo.category, photo._id);
+    if (photo.featured) await clearFeaturedInCategory(photo.category, 'featured', photo._id);
+    if (photo.serviceFeatured) await clearFeaturedInCategory(photo.category, 'serviceFeatured', photo._id);
   }
   await photo.save();
   res.json({ success: true, data: photo });

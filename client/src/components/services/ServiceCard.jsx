@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { BOOKING_PATH } from '../../utils/constants';
 
-export default function ServiceCard({ service }) {
+export default function ServiceCard({ service, photo }) {
   const { id, title, text, icon: Icon, gradient } = service;
 
   return (
@@ -10,8 +10,8 @@ export default function ServiceCard({ service }) {
       <div
         className="svc-card__media"
         role="img"
-        aria-label={`${title} sample photo`}
-        style={{ backgroundImage: `linear-gradient(0deg, rgba(10,10,10,0.85), rgba(10,10,10,0) 60%), url("/images/services/${id}.jpg"), ${gradient}` }}
+        aria-label={photo ? photo.alt : `${title} sample photo`}
+        style={{ backgroundImage: `linear-gradient(0deg, rgba(10,10,10,0.85), rgba(10,10,10,0) 60%), url("${photo?.src ?? `/images/services/${id}.jpg`}"), ${gradient}` }}
       />
       <div className="svc-card__body">
         <span className="svc-card__icon"><Icon size={22} strokeWidth={1.4} /></span>

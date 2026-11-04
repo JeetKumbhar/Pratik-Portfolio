@@ -34,7 +34,7 @@ if (!token) { console.error('Admin login failed. Check ADMIN_EMAIL / ADMIN_PASSW
 
 const portfolioCategories = ['wedding', 'portrait', 'events', 'commercial', 'family', 'pre-wedding', 'landscape', 'baby-shoot'];
 const currentPhotos = (await call('/portfolio/admin', { token })).data?.data ?? [];
-const occupiedFeaturedCategories = new Set(currentPhotos.filter((p) => p.featured).map((p) => p.category));
+const occupiedFeaturedCategories = new Set(currentPhotos.filter((p) => p.featured || p.serviceFeatured).map((p) => p.category));
 const testCategory = portfolioCategories.find((category) => !occupiedFeaturedCategories.has(category));
 const movedCategory = portfolioCategories.find((category) => category !== testCategory) ?? 'portrait';
 const PHOTO = { title: 'API test photo', category: testCategory ?? 'wedding', description: 'temporary', image: { url: '/images/portfolio/gallery/wedding-01.jpg' } };
@@ -93,6 +93,9 @@ try {
   const notFeatured = await call('/portfolio?featured=true');
   check('featured query excludes photos not marked featured', !notFeatured.data?.data?.some((p) => p.id === id));
   check('featured query is not cached', notFeatured.headers.get('cache-control') === 'no-store');
+  const notServiceFeatured = await call('/portfolio?serviceFeatured=true');
+  check('service featured query excludes photos not marked for services', !notServiceFeatured.data?.data?.some((p) => p.id === id));
+  check('service featured query is not cached', notServiceFeatured.headers.get('cache-control') === 'no-store');
 
   console.log('\n-- Editing --');
   const renamed = await call(`/portfolio/${id}`, { method: 'PATCH', body: { title: 'Renamed photo' }, token });
@@ -102,14 +105,23 @@ try {
     const featured = await call(`/portfolio/${id}`, { method: 'PATCH', body: { featured: true }, token });
     check('marking the photo featured → 200', featured.status === 200 && featured.data.data.featured === true);
     check('featured query returns the published featured photo', (await call('/portfolio?featured=true')).data?.data?.some((p) => p.id === id));
-    const second = await call('/portfolio', { method: 'POST', body: { ...PHOTO, title: 'Second API test photo', featured: true }, token });
+    const serviceFeatured = await call(`/portfolio/${id}`, { method: 'PATCH', body: { serviceFeatured: true }, token });
+    check('marking the photo featured on services → 200', serviceFeatured.status === 200 && serviceFeatured.data.data.serviceFeatured === true);
+    check('service featured query returns the published photo', (await call('/portfolio?serviceFeatured=true')).data?.data?.some((p) => p.id === id));
+    const second = await call('/portfolio', { method: 'POST', body: { ...PHOTO, title: 'Second API test photo', featured: true, serviceFeatured: true }, token });
     secondId = second.data?.data?.id;
-    check('a second featured photo can be added to the same category', second.status === 201 && Boolean(secondId));
+    check('another photo can be featured in the same category', second.status === 201 && Boolean(secondId));
     check('adding it clears the previous featured photo in that category', ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === id && !p.featured));
+    check('adding it clears the previous services feature in that category', ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === id && !p.serviceFeatured));
     const selectFirst = await call(`/portfolio/${id}`, { method: 'PATCH', body: { featured: true }, token });
     check('selecting another photo clears the category’s previous feature', selectFirst.status === 200 && ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === secondId && !p.featured));
+    await call(`/portfolio/${secondId}`, { method: 'PATCH', body: { featured: true }, token });
+    const selectFirstForServices = await call(`/portfolio/${id}`, { method: 'PATCH', body: { serviceFeatured: true }, token });
+    const serviceCompetitor = ((await call('/portfolio/admin', { token })).data?.data ?? []).find((p) => p.id === secondId);
+    check('selecting a services feature clears only that category’s previous services feature', selectFirstForServices.status === 200 && serviceCompetitor?.serviceFeatured === false && serviceCompetitor?.featured === true);
     await call(`/portfolio/${id}`, { method: 'PATCH', body: { isPublished: false }, token });
     check('a draft is excluded from featured photos', !((await call('/portfolio?featured=true')).data?.data?.some((p) => p.id === id)));
+    check('a draft is excluded from service featured photos', !((await call('/portfolio?serviceFeatured=true')).data?.data?.some((p) => p.id === id)));
     await call(`/portfolio/${id}`, { method: 'PATCH', body: { isPublished: true, featured: false }, token });
   } else {
     console.log('      (featured uniqueness checks skipped: every category already has a featured photo)');

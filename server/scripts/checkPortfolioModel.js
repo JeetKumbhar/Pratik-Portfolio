@@ -33,7 +33,7 @@ async function validationTests() {
   await babyShoot.validate();
   check('Baby-Shoots is an accepted portfolio category', true);
   check('alt defaults to the title', good.alt === 'Sunset vows');
-  check('isPublished defaults to true, featured to false', good.isPublished === true && good.featured === false);
+  check('isPublished defaults to true; featured flags default to false', good.isPublished === true && good.featured === false && good.serviceFeatured === false);
   check('ratio defaults to 1', good.ratio === 1);
 
   const sized = new Portfolio(make({ image: { url: 'https://res.cloudinary.com/x/a.jpg', width: 1600, height: 1000 } }));

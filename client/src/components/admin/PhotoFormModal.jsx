@@ -13,7 +13,7 @@ import { formatBytes, isImageUrlOrPath, titleFromFilename, transformUrl, validat
 import { cx } from '../../utils/helpers';
 
 const CATEGORY_OPTIONS = CATEGORIES.filter((c) => c.value !== 'all').map(({ value, label }) => ({ value, label }));
-const blank = () => ({ title: '', category: '', description: '', isPublished: true, featured: false });
+const blank = () => ({ title: '', category: '', description: '', isPublished: true, featured: false, serviceFeatured: false });
 
 /**
  * Add a photo (upload a file, or paste an image URL) or edit one (title, category, description, visibility).
@@ -44,7 +44,7 @@ export default function PhotoFormModal({ isOpen, photo, onClose, onSaved }) {
   useEffect(() => {
     if (!isOpen) return;
     setForm(photo
-      ? { title: photo.title, category: photo.category, description: photo.description ?? '', isPublished: photo.isPublished, featured: photo.featured }
+      ? { title: photo.title, category: photo.category, description: photo.description ?? '', isPublished: photo.isPublished, featured: photo.featured, serviceFeatured: photo.serviceFeatured ?? false }
       : blank());
     setMode('upload'); setFile(null); setUrlText(''); setUploaded(null);
     setErrors({}); setSubmitError(''); setProgress(0); setSaving(false);
@@ -90,7 +90,7 @@ export default function PhotoFormModal({ isOpen, photo, onClose, onSaved }) {
     setSubmitError('');
     setProgress(0);
     try {
-      const fields = { title: form.title.trim(), category: form.category, description: form.description.trim(), isPublished: form.isPublished, featured: form.featured };
+      const fields = { title: form.title.trim(), category: form.category, description: form.description.trim(), isPublished: form.isPublished, featured: form.featured, serviceFeatured: form.serviceFeatured };
       let saved;
       if (editing) {
         saved = await updatePhoto(token, photo.id, fields);
@@ -189,6 +189,7 @@ export default function PhotoFormModal({ isOpen, photo, onClose, onSaved }) {
         <div className="photo-form__checks">
           <label><input type="checkbox" checked={form.isPublished} onChange={(e) => set({ isPublished: e.target.checked })} /> Show on the website <small>(untick to keep it as a draft)</small></label>
           <label><input type="checkbox" checked={form.featured} onChange={(e) => set({ featured: e.target.checked })} /> Feature on the home page</label>
+          <label><input type="checkbox" checked={form.serviceFeatured} onChange={(e) => set({ serviceFeatured: e.target.checked })} /> Feature on the Services page</label>
         </div>
 
         {saving && !editing && mode === 'upload' && !uploaded && (

@@ -43,6 +43,7 @@ const portfolioSchema = new mongoose.Schema(
     alt: { type: String, trim: true, maxlength: 200 }, // accessibility text; defaults to the title
     ratio: { type: Number, default: 1, min: [0.3, 'Ratio too narrow'], max: [3, 'Ratio too wide'] }, // width / height
     featured: { type: Boolean, default: false }, // show in "Featured Work" on the Home page
+    serviceFeatured: { type: Boolean, default: false }, // show on the Services page
     isPublished: { type: Boolean, default: true }, // false = draft, hidden from the public site
     sortOrder: { type: Number, default: 0 }, // lower shows first
   },
