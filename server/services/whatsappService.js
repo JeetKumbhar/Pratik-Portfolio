@@ -152,6 +152,41 @@ export async function sendTemplate({ to, template, language, params = [] }) {
   return { messageId };
 }
 
+/**
+ * Sends ONE free-text message. WhatsApp only allows this within 24 hours of the customer's last message
+ * (the caller checks that first; if it was missed, WhatsApp refuses with error 131047 which is explained below).
+ * Resolves { messageId } when WhatsApp ACCEPTS it. Throws WhatsAppError (with `retryable`) otherwise.
+ */
+export async function sendText({ to, body }) {
+  const c = env();
+  if (!isConfigured()) throw new WhatsAppError('WhatsApp is not configured on the server.', { code: 'not_configured' });
+
+  let res;
+  try {
+    res = await fetch(`https://graph.facebook.com/${c.version}/${c.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${c.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'text', text: { preview_url: false, body } }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new WhatsAppError('Could not reach WhatsApp (network problem or timeout).', { code: 'network', retryable: true });
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const e = data?.error ?? {};
+    throw new WhatsAppError(explain(e.code, e.message, c.token), {
+      code: e.code ?? res.status,
+      httpStatus: res.status,
+      retryable: res.status >= 500 || res.status === 429 || e.code === 130429,
+    });
+  }
+  const messageId = data?.messages?.[0]?.id;
+  if (!messageId) throw new WhatsAppError('WhatsApp accepted the request but returned no message id.', { code: 'no_message_id', httpStatus: res.status });
+  return { messageId };
+}
+
 /** For the setup check: is the token valid and which number does it control? */
 export async function getPhoneNumberInfo() {
   const c = env();

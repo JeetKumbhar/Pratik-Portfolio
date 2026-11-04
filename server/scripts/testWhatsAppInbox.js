@@ -482,7 +482,7 @@ section('schemas (REAL Mongoose, offline) and logging hygiene');
 await test('schemas declare the unique indexes and reject bad data', async () => {
   const unique = (model) => model.schema.indexes().filter(([, o]) => o?.unique).map(([k]) => Object.keys(k)[0]);
   assert.deepEqual(unique(Conv), ['phone']);
-  assert.deepEqual(unique(Msg), ['waMessageId']);
+  assert.deepEqual(unique(Msg), ['waMessageId', 'clientRequestId']); // clientRequestId (replies from the admin screen) arrived in Phase 3
   const oid = new mongoose.Types.ObjectId();
   const good = { conversationId: oid, waMessageId: 'w', phone: PRIYA, type: 'text', waTimestamp: new Date() };
   await new Msg(good).validate();

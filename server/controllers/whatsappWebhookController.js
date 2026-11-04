@@ -2,6 +2,7 @@ import { Notification, WhatsAppOptOut } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { applyStatus, parseWebhook, safeEqual, verifySignature } from '../utils/whatsappWebhook.js';
 import { isPermanentDataError, storeIncomingMessage } from '../utils/whatsappInbox.js';
+import { applyOutgoingStatus } from '../utils/whatsappReplies.js';
 
 // GET /api/webhooks/whatsapp   → the one-time handshake when you register the webhook in Meta's dashboard
 export const verifyHandshake = (req, res) => {
@@ -46,7 +47,7 @@ export const receiveEvents = asyncHandler(async (req, res) => {
 
   for (const report of statuses) {
     const log = await Notification.findOne({ waMessageId: report.id });
-    if (!log) continue; // a message we did not send through this site
+    if (!log) { await applyOutgoingStatus(report); continue; } // not a booking notification: maybe a reply sent from the admin inbox (otherwise ignored)
     const next = applyStatus(log.status, report.status);
     if (!next) continue;
     log.status = next;

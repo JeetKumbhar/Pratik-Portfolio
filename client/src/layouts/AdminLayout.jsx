@@ -16,7 +16,7 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { pathname } = useLocation();
   const { token } = useAuth();
-  const { unread, refresh } = useUnreadMessages(token); // one count for the sidebar badge AND the pages (via the outlet context)
+  const { unread, contactUnread, whatsappUnread, refresh } = useUnreadMessages(token); // one set of counts for the sidebar badge AND the pages (via the outlet context)
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   // Close the mobile drawer whenever the page changes
@@ -31,7 +31,7 @@ export default function AdminLayout() {
       <div className="admin__main">
         <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
         <main id="admin-main" className="admin__content" tabIndex={-1}>
-          <Outlet context={{ unreadMessages: unread, refreshUnread: refresh }} />
+          <Outlet context={{ unreadMessages: unread, contactUnread, whatsappUnread, refreshUnread: refresh }} />
         </main>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { WA_DIRECTIONS, WA_MESSAGE_TYPES, WA_PROCESSING_STATUSES } from '../config/constants.js';
+import { WA_DELIVERY_STATUSES, WA_DIRECTIONS, WA_MESSAGE_TYPES, WA_PROCESSING_STATUSES } from '../config/constants.js';
 
 /**
  * One WhatsApp message in a conversation.
@@ -10,6 +10,11 @@ import { WA_DIRECTIONS, WA_MESSAGE_TYPES, WA_PROCESSING_STATUSES } from '../conf
  *                 Other types have no text: we never pretend an image contains words.
  *   processingStatus  received → counted → processed (see utils/whatsappInbox.js)
  *   readAt        when the admin read it; empty = unread
+ *
+ * OUTGOING replies (written by the admin in the app) use the same collection:
+ *   direction 'outgoing'; deliveryStatus sending → sent → delivered → read (or failed, with errorText); waMessageId is
+ *   'pending:<clientRequestId>' until WhatsApp accepts the message, then WhatsApp's real id.
+ *   clientRequestId  an id the admin screen makes for each reply; UNIQUE, so a double click or retry can never send twice.
  * Nothing else from the webhook is kept: no raw payload, and media is not downloaded.
  */
 const messageSchema = new mongoose.Schema(
@@ -24,6 +29,9 @@ const messageSchema = new mongoose.Schema(
     waTimestamp: { type: Date, required: true },
     processingStatus: { type: String, enum: WA_PROCESSING_STATUSES, default: 'received' },
     readAt: { type: Date },
+    deliveryStatus: { type: String, enum: WA_DELIVERY_STATUSES }, // outgoing messages only
+    errorText: { type: String, maxlength: 200 }, // outgoing messages only: why WhatsApp refused it
+    clientRequestId: { type: String, maxlength: 64 },
   },
   {
     timestamps: true,
@@ -41,5 +49,7 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ conversationId: 1, waTimestamp: 1 });
 // counting a conversation's unread incoming messages
 messageSchema.index({ conversationId: 1, direction: 1, readAt: 1 });
+// one outgoing reply per request id (partial: incoming messages have none)
+messageSchema.index({ clientRequestId: 1 }, { unique: true, partialFilterExpression: { clientRequestId: { $type: 'string' } } });
 
 export default mongoose.model('WhatsAppMessage', messageSchema);

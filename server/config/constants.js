@@ -68,3 +68,5 @@ export const WA_DIRECTIONS = ['incoming', 'outgoing'];
 export const WA_CONVERSATION_STATUSES = ['open', 'closed'];
 // received → counted (this message was added to the unread count, exactly once) → processed (conversation summary updated)
 export const WA_PROCESSING_STATUSES = ['received', 'counted', 'processed'];
+// Outgoing replies: sending (we are calling WhatsApp) → sent (WhatsApp accepted it) → delivered → read.  failed is the other ending.
+export const WA_DELIVERY_STATUSES = ['sending', 'sent', 'delivered', 'read', 'failed'];

@@ -22,6 +22,7 @@ import messageRoutes from './routes/messageRoutes.js';
 
 import notificationRoutes from './routes/notificationRoutes.js';
 import whatsappWebhookRoutes from './routes/whatsappWebhookRoutes.js';
+import whatsappInboxRoutes from './routes/whatsappInboxRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,7 +34,8 @@ if (isProd) app.set('trust proxy', 1); // behind a hosting proxy: needed for cor
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 if (!isProd) app.use(morgan('dev'));
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false }));
+// (/api/whatsapp/* is skipped here: the admin inbox refreshes often and has its own limiter in its route file)
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false, skip: (req) => req.path.startsWith('/whatsapp/') }));
 
 // The WhatsApp webhook MUST be mounted BEFORE express.json(). Meta signs the exact bytes it sends, so this route reads
 // the body RAW (express.raw inside the route). If express.json() ran first it would use up the request body, the signature
@@ -58,6 +60,7 @@ app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/messages', messageRoutes);
 
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/whatsapp', whatsappInboxRoutes);
 
 // ---------- Errors (must be last) ----------
 app.use(notFound);

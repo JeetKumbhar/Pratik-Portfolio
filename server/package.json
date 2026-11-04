@@ -29,6 +29,7 @@
     "test:webhook": "node scripts/testWebhookSignature.js",
     "test:webhook-parser": "node scripts/testWebhookParser.js",
     "test:inbox": "node scripts/testWhatsAppInbox.js",
+    "test:inbox-api": "node scripts/testWhatsAppInbox.http.js",
     "whatsapp:create-templates": "node scripts/createWhatsAppTemplates.js"
 
   },

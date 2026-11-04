@@ -4,6 +4,7 @@ import { CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, Inbox, Search, X }
 import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import MessageDetails from '../../components/admin/MessageDetails';
+import WhatsAppInbox from '../../components/admin/WhatsAppInbox';
 import { SUBJECT_OPTIONS } from '../../components/contact/contactData';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
@@ -21,11 +22,37 @@ const TABS = [
 ];
 
 /**
+ * Admin → Messages has two inboxes, chosen with the switch at the top (the URL remembers it):
+ *   Contact form  (default)  messages from the website's contact form, read in a side panel
+ *   WhatsApp                 customers who wrote to your WhatsApp number: read the chat and reply (components/admin/WhatsAppInbox.jsx)
+ */
+export default function Messages() {
+  const [params, setParams] = useSearchParams();
+  const { contactUnread = 0, whatsappUnread = 0, refreshUnread } = useOutletContext() ?? {};
+  const source = params.get('source') === 'whatsapp' ? 'whatsapp' : 'contact';
+  const choose = (value) => setParams(value === 'whatsapp' ? { source: 'whatsapp' } : {}, { replace: true });
+
+  return (
+    <div className="msg-source">
+      <div className="bk__tabs" role="group" aria-label="Choose an inbox">
+        <button type="button" className={cx('bk-tab', source === 'contact' && 'is-active')} aria-pressed={source === 'contact'} onClick={() => choose('contact')}>
+          Contact form{contactUnread > 0 && <span className="bk-tab__count">{contactUnread}</span>}
+        </button>
+        <button type="button" className={cx('bk-tab', source === 'whatsapp' && 'is-active')} aria-pressed={source === 'whatsapp'} onClick={() => choose('whatsapp')}>
+          WhatsApp{whatsappUnread > 0 && <span className="bk-tab__count">{whatsappUnread}</span>}
+        </button>
+      </div>
+      {source === 'whatsapp' ? <WhatsAppInbox onUnreadChanged={refreshUnread} /> : <ContactMessages />}
+    </div>
+  );
+}
+
+/**
  * Contact form → POST /api/messages → MongoDB → Admin → Messages.
  * View (opens the message and marks it read) · Mark as read / unread · Delete.
  * The URL holds the tab, search and page:  /admin/messages?filter=unread&search=sarah&page=2
  */
-export default function Messages() {
+function ContactMessages() {
   const { token } = useAuth();
   const { refreshUnread } = useOutletContext() ?? {}; // keeps the sidebar badge in step
   const [params, setParams] = useSearchParams();

@@ -96,3 +96,23 @@ export const getNotifications = (token, params) => api.get('/notifications', { t
 
 /** POST /api/notifications/:id/retry → { message, data }  (409 unless it failed, 503 if WhatsApp is not configured) */
 export const retryNotification = (token, id) => api.post(`/notifications/${encodeURIComponent(id)}/retry`, {}, { token });
+
+// ---------------------------------------------------------------- WhatsApp inbox (customer messages and replies)
+/** GET /api/whatsapp/unread-count → the number of unread customer messages (for the sidebar badge) */
+export const getWhatsAppUnreadCount = (token) => api.get('/whatsapp/unread-count', { token }).then((r) => r.unread);
+
+/** GET /api/whatsapp/conversations → the WHOLE body { data:[…], total, page, pages, counts:{all,unread,unreadMessages} }.  params: { search, unread:'1', page, limit } */
+export const getWhatsAppConversations = (token, params) => api.get('/whatsapp/conversations', { token, params });
+
+/** GET /api/whatsapp/conversations/:id/messages → { conversation, messages:[…oldest first], reply:{ windowOpen, windowExpiresAt, optedOut } } */
+export const getWhatsAppThread = (token, id) => api.get(`/whatsapp/conversations/${encodeURIComponent(id)}/messages`, { token });
+
+/** POST /api/whatsapp/conversations/:id/read → { unreadCount } */
+export const markWhatsAppRead = (token, id) => api.post(`/whatsapp/conversations/${encodeURIComponent(id)}/read`, {}, { token });
+
+/**
+ * POST /api/whatsapp/conversations/:id/reply  payload: { text, clientRequestId }
+ * → { duplicate, data: the saved message }.  Throws ApiError: 400 bad text · 403 customer sent STOP · 409 24-hour window closed ·
+ * 502 WhatsApp refused it (err.data.data is the saved failed message) · 503 WhatsApp not configured · status 0 = could not reach the server (the reply MAY have been sent)
+ */
+export const sendWhatsAppReply = (token, id, payload) => api.post(`/whatsapp/conversations/${encodeURIComponent(id)}/reply`, payload, { token });
