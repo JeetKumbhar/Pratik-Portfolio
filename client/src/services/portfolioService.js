@@ -9,3 +9,9 @@ export async function getPortfolioItems() {
   const { data } = await api.get('/portfolio');
   return data;
 }
+
+/** Returns published photos marked for the homepage; this request is not cached by the API. */
+export async function getFeaturedPortfolio() {
+  const { data } = await api.get('/portfolio', { params: { featured: true } });
+  return data;
+}

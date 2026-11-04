@@ -23,7 +23,7 @@ async function call(path, { method = 'GET', body, token } = {}) {
   const res = await fetch(`${BASE}/api${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
   let data = null;
   try { data = await res.json(); } catch { /* no body */ }
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 }
 
 try { await call('/health'); } catch { console.error(`Cannot reach ${BASE}. Start the server first (npm run dev).`); process.exit(1); }
@@ -32,14 +32,21 @@ const login = await call('/auth/login', { method: 'POST', body: { email: ADMIN_E
 const token = login.data?.token;
 if (!token) { console.error('Admin login failed. Check ADMIN_EMAIL / ADMIN_PASSWORD (the seeded admin).'); process.exit(1); }
 
-const PHOTO = { title: 'API test photo', category: 'wedding', description: 'temporary', image: { url: '/images/portfolio/gallery/wedding-01.jpg' } };
+const portfolioCategories = ['wedding', 'portrait', 'events', 'commercial', 'family', 'pre-wedding', 'landscape', 'baby-shoot'];
+const currentPhotos = (await call('/portfolio/admin', { token })).data?.data ?? [];
+const occupiedFeaturedCategories = new Set(currentPhotos.filter((p) => p.featured).map((p) => p.category));
+const testCategory = portfolioCategories.find((category) => !occupiedFeaturedCategories.has(category));
+const movedCategory = portfolioCategories.find((category) => category !== testCategory) ?? 'portrait';
+const PHOTO = { title: 'API test photo', category: testCategory ?? 'wedding', description: 'temporary', image: { url: '/images/portfolio/gallery/wedding-01.jpg' } };
 let id = null;
+let secondId = null;
 
 try {
   console.log('\n-- The public gallery --');
   const pub = await call('/portfolio');
   check('GET /portfolio works without a token and returns a list', pub.status === 200 && Array.isArray(pub.data?.data), `got ${pub.status}`);
   check('an invalid category filter → 400', (await call('/portfolio?category=astronomy')).status === 400);
+  check('an invalid featured filter → 400', (await call('/portfolio?featured=yes')).status === 400);
 
   console.log('\n-- Only an admin can manage photos --');
   for (const [label, path, method, body] of [
@@ -83,14 +90,33 @@ try {
   const listed = async (query = '') => ((await call(`/portfolio${query}`)).data?.data ?? []).some((p) => p.id === id);
   check('it shows in the public gallery', await listed());
   check('and in the admin list', ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === id));
+  const notFeatured = await call('/portfolio?featured=true');
+  check('featured query excludes photos not marked featured', !notFeatured.data?.data?.some((p) => p.id === id));
+  check('featured query is not cached', notFeatured.headers.get('cache-control') === 'no-store');
 
   console.log('\n-- Editing --');
   const renamed = await call(`/portfolio/${id}`, { method: 'PATCH', body: { title: 'Renamed photo' }, token });
   check('change the title → 200', renamed.status === 200 && renamed.data.data.title === 'Renamed photo');
   check('the alt text follows the title', renamed.data.data.alt === 'Renamed photo');
-  const moved = await call(`/portfolio/${id}`, { method: 'PATCH', body: { category: 'portrait' }, token });
-  check('change the category → 200', moved.status === 200 && moved.data.data.category === 'portrait');
-  check('it now appears under Portrait and no longer under Wedding', (await listed('?category=portrait')) && !(await listed('?category=wedding')));
+  if (testCategory) {
+    const featured = await call(`/portfolio/${id}`, { method: 'PATCH', body: { featured: true }, token });
+    check('marking the photo featured → 200', featured.status === 200 && featured.data.data.featured === true);
+    check('featured query returns the published featured photo', (await call('/portfolio?featured=true')).data?.data?.some((p) => p.id === id));
+    const second = await call('/portfolio', { method: 'POST', body: { ...PHOTO, title: 'Second API test photo', featured: true }, token });
+    secondId = second.data?.data?.id;
+    check('a second featured photo can be added to the same category', second.status === 201 && Boolean(secondId));
+    check('adding it clears the previous featured photo in that category', ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === id && !p.featured));
+    const selectFirst = await call(`/portfolio/${id}`, { method: 'PATCH', body: { featured: true }, token });
+    check('selecting another photo clears the category’s previous feature', selectFirst.status === 200 && ((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === secondId && !p.featured));
+    await call(`/portfolio/${id}`, { method: 'PATCH', body: { isPublished: false }, token });
+    check('a draft is excluded from featured photos', !((await call('/portfolio?featured=true')).data?.data?.some((p) => p.id === id)));
+    await call(`/portfolio/${id}`, { method: 'PATCH', body: { isPublished: true, featured: false }, token });
+  } else {
+    console.log('      (featured uniqueness checks skipped: every category already has a featured photo)');
+  }
+  const moved = await call(`/portfolio/${id}`, { method: 'PATCH', body: { category: movedCategory }, token });
+  check(`change the category → 200`, moved.status === 200 && moved.data.data.category === movedCategory);
+  check(`it now appears under ${movedCategory} and no longer under ${PHOTO.category}`, (await listed(`?category=${movedCategory}`)) && !(await listed(`?category=${PHOTO.category}`)));
   check('an unknown category → 400', (await call(`/portfolio/${id}`, { method: 'PATCH', body: { category: 'astronomy' }, token })).status === 400);
   check('an empty edit → 400', (await call(`/portfolio/${id}`, { method: 'PATCH', body: {}, token })).status === 400);
   check('the image itself cannot be swapped (nothing editable in that request → 400)', (await call(`/portfolio/${id}`, { method: 'PATCH', body: { image: { url: '/x.jpg' } }, token })).status === 400);
@@ -101,6 +127,7 @@ try {
   console.log('\n-- Deleting --');
   const del = await call(`/portfolio/${id}`, { method: 'DELETE', token });
   check('delete → 200 (nothing was stored, so storageDeleted is null)', del.status === 200 && del.data.storageDeleted === null, `got ${del.status}: ${JSON.stringify(del.data)}`);
+  if (secondId) await call(`/portfolio/${secondId}`, { method: 'DELETE', token });
   check('it is gone from the admin list', !((await call('/portfolio/admin', { token })).data?.data ?? []).some((p) => p.id === id));
   check('deleting it again → 404', (await call(`/portfolio/${id}`, { method: 'DELETE', token })).status === 404);
   check('a malformed id → 404', (await call('/portfolio/not-an-id', { method: 'DELETE', token })).status === 404);
@@ -110,6 +137,7 @@ try {
   failed += 1;
 } finally {
   if (id) await call(`/portfolio/${id}`, { method: 'DELETE', token }).catch(() => {});
+  if (secondId) await call(`/portfolio/${secondId}`, { method: 'DELETE', token }).catch(() => {});
 }
 
 console.log(failed ? `\n${failed} check(s) FAILED` : '\nAll checks passed');

@@ -29,6 +29,9 @@ async function validationTests() {
   const good = new Portfolio(make());
   await good.validate();
   check('a photo with image, title and category is valid', true);
+  const babyShoot = new Portfolio(make({ category: 'baby-shoot' }));
+  await babyShoot.validate();
+  check('Baby-Shoots is an accepted portfolio category', true);
   check('alt defaults to the title', good.alt === 'Sunset vows');
   check('isPublished defaults to true, featured to false', good.isPublished === true && good.featured === false);
   check('ratio defaults to 1', good.ratio === 1);

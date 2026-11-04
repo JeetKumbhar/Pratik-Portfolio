@@ -11,12 +11,11 @@ export const LOCATION = {
 export const WHATSAPP_URL = `https://wa.me/${SITE.phone.replace(/\D/g, '')}`;
 
 export const SUBJECT_OPTIONS = [
-  { value: 'wedding', label: 'Wedding photography' },
-  { value: 'pre-wedding', label: 'Pre-wedding shoot' },
-  { value: 'portrait', label: 'Portrait session' },
-  { value: 'baby-shoot', label: 'Baby shoot' },
-  { value: 'events', label: 'Event coverage' },
-  { value: 'commercial', label: 'Commercial project' },
-  { value: 'custom', label: 'Custom shoot' },
+  { value: 'wedding', label: 'Weddings' },
+  { value: 'pre-wedding', label: 'Pre-weddings' },
+  { value: 'portrait', label: 'Portrait' },
+  { value: 'baby-shoot', label: 'Baby-Shoots' },
+  { value: 'events', label: 'Events' },
+  { value: 'commercial', label: 'Commercial' },
   { value: 'general', label: 'General question' },
 ];

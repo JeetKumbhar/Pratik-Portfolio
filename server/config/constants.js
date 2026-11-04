@@ -8,7 +8,7 @@ export const LOCATIONS = ['studio', 'outdoor', 'client', 'undecided'];
 export const STYLES = ['Natural', 'Moody', 'Bright & Airy', 'Cinematic', 'Dark & Dramatic', 'Warm & Cozy', 'Minimal', 'Editorial'];
 export const MAX_STYLES = 3;
 
-export const PORTFOLIO_CATEGORIES = ['wedding', 'portrait', 'events', 'commercial', 'family', 'pre-wedding', 'landscape'];
+export const PORTFOLIO_CATEGORIES = ['wedding', 'portrait', 'events', 'commercial', 'family', 'pre-wedding', 'landscape', 'baby-shoot'];
 
 export const MESSAGE_SUBJECTS = [...SHOOT_TYPES, 'general'];
 export const MESSAGE_STATUSES = ['new', 'read', 'replied', 'archived'];

@@ -14,19 +14,30 @@ async function findPhoto(id) {
   return photo;
 }
 
+async function clearFeaturedInCategory(category, exceptId) {
+  await Portfolio.updateMany(
+    { category, featured: true, ...(exceptId && { _id: { $ne: exceptId } }) },
+    { $set: { featured: false } }
+  );
+}
+
 // ---------------------------------------------------------------- GET /api/portfolio  (PUBLIC)
 // ?category=wedding   → published photos only, in display order
 export const getPublicPortfolio = asyncHandler(async (req, res) => {
   const filter = { isPublished: true };
-  const { category } = req.query;
+  const { category, featured } = req.query;
   if (category !== undefined) {
     if (typeof category !== 'string' || !PORTFOLIO_CATEGORIES.includes(category)) {
       throw httpError(400, `Invalid category. Use one of: ${PORTFOLIO_CATEGORIES.join(', ')}`);
     }
     filter.category = category;
   }
+  if (featured !== undefined) {
+    if (featured !== 'true' && featured !== 'false') throw httpError(400, 'Featured must be true or false');
+    filter.featured = featured === 'true';
+  }
   const items = await Portfolio.find(filter).sort({ sortOrder: 1, createdAt: -1 }).limit(500);
-  res.set('Cache-Control', 'public, max-age=60');
+  res.set('Cache-Control', featured === undefined ? 'public, max-age=60' : 'no-store');
   res.json({ success: true, count: items.length, data: items });
 });
 
@@ -54,7 +65,7 @@ export const createPhoto = asyncHandler(async (req, res) => {
   // An uploaded image must really come from our own Cloudinary folder
   if (image.publicId && !isOwnImage(image)) throw httpError(400, 'That image was not uploaded through the portfolio uploader.');
 
-  const photo = await Portfolio.create({
+  const photo = new Portfolio({
     image,
     title: str(b.title),
     category: str(b.category),
@@ -64,6 +75,11 @@ export const createPhoto = asyncHandler(async (req, res) => {
     isPublished: bool(b.isPublished),
     sortOrder: num(b.sortOrder),
   });
+  if (photo.featured) {
+    await photo.validate();
+    await clearFeaturedInCategory(photo.category);
+  }
+  await photo.save();
   res.status(201).json({ success: true, data: photo });
 });
 
@@ -82,6 +98,10 @@ export const updatePhoto = asyncHandler(async (req, res) => {
   if (!touched) throw httpError(400, `Nothing to update. You can change: ${EDITABLE.join(', ')}.`);
   if (alwaysFollowsTitle && !('alt' in body)) photo.alt = photo.title;
 
+  if (photo.featured) {
+    await photo.validate();
+    await clearFeaturedInCategory(photo.category, photo._id);
+  }
   await photo.save();
   res.json({ success: true, data: photo });
 });

@@ -1,5 +1,5 @@
 import {
-  Heart, Sparkles, User, Baby, CalendarDays, Briefcase, Lightbulb,
+  Heart, Sparkles, User, Baby, CalendarDays, Briefcase,
   Building2, Trees, Home, HelpCircle, CalendarCheck, Camera, Clock, ShieldCheck,
 } from 'lucide-react';
 
@@ -12,13 +12,12 @@ export const STEPS = [
 
 /** ids match the Services page links: /booking?service=wedding */
 export const SHOOT_TYPES = [
-  { id: 'wedding', label: 'Wedding', text: 'Ceremony and celebration', icon: Heart },
-  { id: 'pre-wedding', label: 'Pre-Wedding', text: 'Couple sessions', icon: Sparkles },
-  { id: 'portrait', label: 'Portrait', text: 'Individuals, family, branding', icon: User },
-  { id: 'baby-shoot', label: 'Baby-Shoot', text: '1st Birthday, baby shower', icon: Baby },
-  { id: 'events', label: 'Events', text: 'Car delivery, parties, corporate, occasions', icon: CalendarDays },
+  { id: 'wedding', label: 'Weddings', text: 'Ceremony and celebration', icon: Heart },
+  { id: 'pre-wedding', label: 'Pre-weddings', text: 'Couple sessions', icon: Sparkles },
+  { id: 'portrait', label: 'Portrait', text: 'Individuals, professionals, branding', icon: User },
+  { id: 'baby-shoot', label: 'Baby-Shoots', text: 'Precious little moments', icon: Baby },
+  { id: 'events', label: 'Events', text: 'Parties, corporate events, occasions', icon: CalendarDays },
   { id: 'commercial', label: 'Commercial', text: 'Brands, products, campaigns', icon: Briefcase },
-  { id: 'custom', label: 'Custom', text: 'Something different?', icon: Lightbulb },
 ];
 
 export const LOCATIONS = [

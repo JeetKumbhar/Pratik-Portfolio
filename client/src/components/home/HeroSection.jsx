@@ -48,7 +48,7 @@ export default function HeroSection() {
               <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label}><Icon size={22} /></a>
             </li>
           ))}
-        </ul>
+        </ul>hie
 
         <div className="hero__scroll" aria-hidden="true"><Mouse size={22} strokeWidth={1.3} /><span>Scroll down</span></div>
 

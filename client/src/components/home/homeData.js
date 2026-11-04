@@ -1,4 +1,4 @@
-import { Heart, CalendarDays, Mountain, Briefcase, Users, User } from 'lucide-react';
+import { Heart, Sparkles, CalendarDays, Briefcase, Baby, User } from 'lucide-react';
 
 /**
  * Drop your photos in client/public/images/... using these names (or change the paths).
@@ -22,19 +22,21 @@ export const HERO_STATS = [
 ];
 
 export const FEATURED = [
-  { title: 'Portraits', to: '/portfolio?category=portraits', src: '/images/portfolio/portraits.jpg', fallback: 'linear-gradient(160deg, #5a3d22, #120d08)' },
-  { title: 'Weddings', to: '/portfolio?category=weddings', src: '/images/portfolio/weddings.jpg', fallback: 'linear-gradient(160deg, #4a3a2a, #0e0b08)' },
-  { title: 'Landscapes', to: '/portfolio?category=landscapes', src: '/images/portfolio/landscapes.jpg', fallback: 'linear-gradient(160deg, #6a4a28, #0b0e12)' },
-  { title: 'Events', to: '/portfolio?category=events', src: '/images/portfolio/events.jpg', fallback: 'linear-gradient(160deg, #4a2a5a, #0b0810)' },
+  { category: 'wedding', title: 'Weddings', to: '/portfolio?category=wedding', src: '/images/portfolio/weddings.jpg', fallback: 'linear-gradient(160deg, #4a3a2a, #0e0b08)' },
+  { category: 'pre-wedding', title: 'Pre-Weddings', to: '/portfolio?category=pre-wedding', src: '/images/portfolio/pre-wedding.jpg', fallback: 'linear-gradient(160deg, #5a2a3a, #10080b)' },
+  { category: 'portrait', title: 'Portraits', to: '/portfolio?category=portrait', src: '/images/portfolio/portraits.jpg', fallback: 'linear-gradient(160deg, #5a3d22, #120d08)' },
+  { category: 'baby-shoot', title: 'BabyShoots', to: '/portfolio?category=baby-shoot', src: '/images/portfolio/baby-shoot.jpg', fallback: 'linear-gradient(160deg, #6a4a28, #0b0e12)' },
+  { category: 'events', title: 'Events', to: '/portfolio?category=events', src: '/images/portfolio/events.jpg', fallback: 'linear-gradient(160deg, #4a2a5a, #0b0810)' },
+  { category: 'commercial', title: 'Commercial', to: '/portfolio?category=commercial', src: '/images/portfolio/commercial.jpg', fallback: 'linear-gradient(160deg, #2a3a4a, #080b0e)' },
 ];
 
 export const SERVICES = [
-  { title: 'Portraits', icon: User, text: 'Professional portraits for individuals, professionals and personal branding.' },
   { title: 'Weddings', icon: Heart, text: 'Timeless wedding photography that captures every emotion and beautiful moment.' },
+  { title: 'Pre-weddings', icon: Sparkles, text: 'Beautiful pre-wedding shoots capturing the chemistry, love and story of couples.' },
+  { title: 'Portrait', icon: User, text: 'Professional portraits for individuals, professionals and personal branding.' },
+  { title: 'Baby-Shoots', icon: Baby, text: 'Heartwarming baby photography capturing precious little moments.' },
   { title: 'Events', icon: CalendarDays, text: 'Corporate events, parties and special occasions covered with care and creativity.' },
-  { title: 'Landscapes', icon: Mountain, text: 'Breathtaking landscape and travel photography that captures nature at its best.' },
   { title: 'Commercial', icon: Briefcase, text: 'High-quality imagery for brands, products and marketing campaigns.' },
-  { title: 'Family', icon: Users, text: 'Natural and heartwarming family photos you\'ll treasure forever.' },
 ];
 
 /** SAMPLE TEXT: replace with real client testimonials. */

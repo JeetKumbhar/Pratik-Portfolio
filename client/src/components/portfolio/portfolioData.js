@@ -8,17 +8,16 @@
  */
 export const CATEGORIES = [
   { value: 'all', label: 'All' },
-  { value: 'wedding', label: 'Wedding' },
+  { value: 'wedding', label: 'Weddings' },
+  { value: 'pre-wedding', label: 'Pre-weddings' },
   { value: 'portrait', label: 'Portrait' },
+  { value: 'baby-shoot', label: 'Baby-Shoots' },
   { value: 'events', label: 'Events' },
   { value: 'commercial', label: 'Commercial' },
-  { value: 'family', label: 'Family' },
-  { value: 'pre-wedding', label: 'Pre-Wedding' },
-  { value: 'landscape', label: 'Landscape' },
 ];
 
-/** Old links from the Home page (?category=weddings) still work. */
-export const CATEGORY_ALIASES = { weddings: 'wedding', portraits: 'portrait', landscapes: 'landscape' };
+/** Old links from the Home page still work. */
+export const CATEGORY_ALIASES = { weddings: 'wedding', portraits: 'portrait' };
 
 export const categoryLabel = (value) => CATEGORIES.find((c) => c.value === value)?.label ?? value;
 
@@ -27,9 +26,8 @@ export const CATEGORY_GRADIENTS = {
   portrait: 'linear-gradient(160deg, #5a3d22, #120d08)',
   events: 'linear-gradient(160deg, #4a2a5a, #0b0810)',
   commercial: 'linear-gradient(160deg, #2a3a4a, #080b0e)',
-  family: 'linear-gradient(160deg, #5a4a2a, #100c08)',
   'pre-wedding': 'linear-gradient(160deg, #5a2a3a, #10080b)',
-  landscape: 'linear-gradient(160deg, #6a4a28, #0b0e12)',
+  'baby-shoot': 'linear-gradient(160deg, #6a4a28, #0b0e12)',
 };
 
 const RATIOS = [0.75, 1, 0.8, 1.333, 0.667];
@@ -50,8 +48,8 @@ const make = (category, count) =>
 
 // Interleave categories so the "All" view is a nice mix instead of grouped blocks
 const groups = [
-  make('wedding', 4), make('portrait', 3), make('events', 3), make('commercial', 3),
-  make('family', 3), make('pre-wedding', 3), make('landscape', 3),
+  make('wedding', 4), make('pre-wedding', 3), make('portrait', 3), make('baby-shoot', 3),
+  make('events', 3), make('commercial', 3),
 ];
 export const PORTFOLIO_ITEMS = Array.from({ length: Math.max(...groups.map((g) => g.length)) }, (_, i) =>
   groups.map((g) => g[i]).filter(Boolean)

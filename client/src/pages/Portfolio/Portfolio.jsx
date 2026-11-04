@@ -59,7 +59,7 @@ export default function Portfolio() {
           <SectionTitle
             eyebrow="Portfolio"
             title="Moments I've captured"
-            subtitle="A selection of weddings, portraits, events and landscapes. Tap any photo to view it full screen."
+            subtitle="A selection of weddings, pre-weddings, portraits, baby shoots, events and commercial work. Tap any photo to view it full screen."
             serif
           />
 
