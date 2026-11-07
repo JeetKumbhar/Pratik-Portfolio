@@ -8,6 +8,7 @@ import { WA_DIRECTIONS, WA_CONVERSATION_STATUSES } from '../config/constants.js'
  *   name      the customer's WhatsApp profile name (updated whenever WhatsApp sends a newer valid one)
  *   contactId WhatsApp's own id for the customer ("wa_id"), when WhatsApp supplies it
  *   unreadCount  incoming messages the admin has not read yet (kept up to date by utils/whatsappInbox.js)
+ *   clientId  the CRM client for this phone number (see models/Client.js); never sent to the browser
  */
 const conversationSchema = new mongoose.Schema(
   {
@@ -19,12 +20,16 @@ const conversationSchema = new mongoose.Schema(
     lastMessageDirection: { type: String, enum: WA_DIRECTIONS },
     unreadCount: { type: Number, min: 0, default: 0 },
     status: { type: String, enum: WA_CONVERSATION_STATUSES, default: 'open' },
+    // The CRM client with this phone number. Set by utils/clients.js after a message is stored; empty on conversations that
+    // existed before the Clients section (`npm run backfill:clients -- --apply` links them).
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
   },
   {
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
         ret.id = String(ret._id);
+        delete ret.clientId; // internal link: the inbox screens do not need it
         delete ret.__v;
         return ret;
       },
@@ -34,5 +39,7 @@ const conversationSchema = new mongoose.Schema(
 
 // the future inbox list: open conversations, most recent first
 conversationSchema.index({ status: 1, lastMessageAt: -1 });
+// the Clients profile looks up a client's conversation
+conversationSchema.index({ clientId: 1 });
 
 export default mongoose.model('WhatsAppConversation', conversationSchema);

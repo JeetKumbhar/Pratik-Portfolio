@@ -7,6 +7,7 @@ import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 import { notifyBookingCreated, notifyBookingStatusChanged } from '../utils/notificationHelper.js';
 import { computeBookingStats } from '../utils/bookingStats.js';
+import { safeLinkBooking } from '../utils/clients.js';
 
 // ---------------------------------------------------------------- helpers
 const str = (v) => (typeof v === 'string' ? v : undefined);
@@ -69,6 +70,11 @@ export const createBooking = asyncHandler(async (req, res) => {
   }
 
   await booking.save(); // the unique slotKey index is the final guard against a simultaneous double-booking (409)
+
+  // CRM: find or create this customer's client (one per phone number) and attach the booking. Done only AFTER the booking is saved,
+  // so a failed booking never leaves a stray client. It never throws: if it cannot finish, the booking stays saved and unlinked
+  // (`npm run backfill:clients` repairs it) instead of the customer seeing an error for a booking that was made.
+  await safeLinkBooking(booking);
 
   sendBookingReceived(booking); // fire and forget: an email problem never fails the booking
   notifyBookingCreated(booking); // WhatsApp: the photographer, then (if they opted in) the customer. Runs after the save and never fails the booking.

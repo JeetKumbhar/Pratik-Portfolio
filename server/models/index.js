@@ -9,3 +9,5 @@ export { default as Notification } from './Notification.js';
 export { default as WhatsAppOptOut } from './WhatsAppOptOut.js';
 export { default as WhatsAppConversation } from './WhatsAppConversation.js';
 export { default as WhatsAppMessage } from './WhatsAppMessage.js';
+export { default as Client } from './Client.js';
+export { default as ClientNote } from './ClientNote.js';

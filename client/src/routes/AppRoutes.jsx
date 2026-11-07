@@ -17,6 +17,8 @@ import AdminPortfolio from "../pages/Admin/Portfolio";
 import Packages from "../pages/Admin/Packages";
 import Messages from "../pages/Admin/Messages";
 import Notifications from "../pages/Admin/Notifications";
+import Clients from "../pages/Admin/Clients";
+import ClientProfile from "../pages/Admin/ClientProfile";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -54,7 +56,8 @@ export default function AppRoutes() {
           <Route index element={<Dashboard />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="calendar" element={<Calendar />} />
-          <Route path="clients" element={<Placeholder title="Clients" />} />
+          <Route path="clients" element={<Clients />} />
+          <Route path="clients/:id" element={<ClientProfile />} />
           <Route path="portfolio" element={<AdminPortfolio />} />
           <Route path="packages" element={<Packages />} />
           <Route path="messages" element={<Messages />} />

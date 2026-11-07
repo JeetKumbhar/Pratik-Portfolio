@@ -77,6 +77,10 @@ const bookingSchema = new mongoose.Schema(
     },
 
     status: { type: String, enum: { values: BOOKING_STATUSES, message: 'Invalid status' }, default: 'pending' },
+    // The CRM client this booking belongs to (one client per phone number). Set by utils/clients.js right AFTER the booking is saved, so a
+    // booking that fails never leaves a stray client behind. Absent on bookings made before the Clients section existed until
+    // `npm run backfill:clients -- --apply` links them. Never sent to the browser (see toJSON below).
+    clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
     adminNotes: { type: String, trim: true, maxlength: 1000, default: '', select: false }, // admin-only: query with .select('+adminNotes')
 
     // managed automatically, see above. `default: undefined` keeps the field ABSENT (not []) when inactive,
@@ -90,6 +94,7 @@ const bookingSchema = new mongoose.Schema(
         ret.id = String(ret._id);
         ret.reference = ret.bookingId; // what the frontend calls it
         delete ret.slotKeys;
+        delete ret.clientId; // internal link to the CRM: the public booking response must not carry it
         delete ret.__v;
         return ret;
       },
@@ -115,5 +120,7 @@ bookingSchema.pre('validate', function lockSlots() {
 bookingSchema.index({ date: 1, time: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ email: 1 });
+// a client's bookings (profile page) and the per-client booking counts in the Clients list
+bookingSchema.index({ clientId: 1, date: -1 });
 
 export default mongoose.model('Booking', bookingSchema);

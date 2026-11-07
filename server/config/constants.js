@@ -74,3 +74,12 @@ export const WA_DELIVERY_STATUSES = [
   'read',
   'failed'
 ];
+
+/** Clients (the admin CRM). One client per phone number. */
+export const CLIENT_SOURCES = ['booking', 'whatsapp', 'manual']; // how the client first appeared
+/** Where a client's CURRENT name came from, lowest to highest. A lower source never overwrites a higher one. */
+export const CLIENT_NAME_SOURCES = ['placeholder', 'whatsapp', 'booking', 'manual'];
+export const CLIENT_FILTERS = ['all', 'new', 'repeat', 'upcoming', 'none'];
+export const CLIENT_SORTS = ['recent', 'oldest', 'lastBooking', 'mostBookings'];
+export const CLIENT_BOOKING_FILTERS = ['all', 'upcoming', 'completed', 'cancelled'];
+export const CLIENT_NOTE_MAX_LENGTH = 2000;

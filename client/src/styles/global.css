@@ -19,6 +19,7 @@
 @import './admin-packages.css';
 @import './admin-messages.css';
 @import './admin-inbox.css';
+@import './admin-clients.css';
 @import './whatsapp.css';
 
 *, *::before, *::after { box-sizing: border-box; }

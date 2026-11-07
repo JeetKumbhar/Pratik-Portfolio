@@ -17,7 +17,7 @@ import bookingRoutes from './routes/bookingRoutes.js';
 import availabilityRoutes from './routes/availabilityRoutes.js';
 import blockedDateRoutes from './routes/blockedDateRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
-// import clientRoutes from './routes/clientRoutes.js';
+import clientRoutes from './routes/clientRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 
 import notificationRoutes from './routes/notificationRoutes.js';
@@ -34,8 +34,8 @@ if (isProd) app.set('trust proxy', 1); // behind a hosting proxy: needed for cor
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 if (!isProd) app.use(morgan('dev'));
-// (/api/whatsapp/* is skipped here: the admin inbox refreshes often and has its own limiter in its route file)
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false, skip: (req) => req.path.startsWith('/whatsapp/') }));
+// (/api/whatsapp/* and /api/clients are skipped here: those admin screens load often and have their own limiter in their route file)
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: true, legacyHeaders: false, skip: (req) => req.path.startsWith('/whatsapp/') || (req.path === '/clients' || req.path.startsWith('/clients/')) }));
 
 // The WhatsApp webhook MUST be mounted BEFORE express.json(). Meta signs the exact bytes it sends, so this route reads
 // the body RAW (express.raw inside the route). If express.json() ran first it would use up the request body, the signature
@@ -56,7 +56,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/availability', availabilityRoutes);
 app.use('/api/blocked-dates', blockedDateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
-// app.use('/api/clients', clientRoutes);
+app.use('/api/clients', clientRoutes);
 app.use('/api/messages', messageRoutes);
 
 app.use('/api/notifications', notificationRoutes);
