@@ -1,4 +1,5 @@
 import { BOOKING_RULES } from '../config/constants.js';
+import { getRuntimeConfig } from './runtimeConfig.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_CHARS_RE = /^\+?[\d\s().-]+$/;
@@ -38,15 +39,31 @@ export const isBookableTime = (v) => {
 };
 
 /**
- * Today's date as 'YYYY-MM-DD' in the BUSINESS's timezone, so "after today" means the same thing
- * wherever the server runs. Set BUSINESS_TIMEZONE in .env (e.g. 'Asia/Kolkata'); default is UTC.
+ * The business timezone: the one saved in Admin → Settings → General (kept in runtimeConfig), else BUSINESS_TIMEZONE from .env,
+ * else UTC. An invalid name falls back to UTC instead of crashing.
  */
-export const todayKey = (now = new Date()) => {
-  const format = (timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+export const businessTimezone = () => getRuntimeConfig().timezone || process.env.BUSINESS_TIMEZONE || 'UTC';
+
+/**
+ * Today's date as 'YYYY-MM-DD' in the BUSINESS's timezone, so "after today" means the same thing
+ * wherever the server runs.
+ */
+export const todayKey = (now = new Date(), timeZone = businessTimezone()) => {
+  const format = (tz) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
   try {
-    return format(process.env.BUSINESS_TIMEZONE || 'UTC');
+    return format(timeZone);
   } catch {
-    return format('UTC'); // invalid timezone name in .env
+    return format('UTC'); // invalid timezone name
+  }
+};
+
+/** The hour of the day (0 to 23) right now in the business timezone */
+export const hourNow = (now = new Date(), timeZone = businessTimezone()) => {
+  const get = (tz) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hourCycle: 'h23' }).format(now));
+  try {
+    return get(timeZone);
+  } catch {
+    return get('UTC');
   }
 };
 

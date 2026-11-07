@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { MESSAGE_SUBJECTS, MESSAGE_STATUSES } from '../config/constants.js';
+import { MESSAGE_STATUSES, SLUG_MAX, SLUG_RE } from '../config/constants.js';
 import { isEmail, isPhone } from '../utils/validators.js';
 
 /**
@@ -20,7 +20,8 @@ const messageSchema = new mongoose.Schema(
     },
     subject: {
       type: String,
-      enum: { values: MESSAGE_SUBJECTS, message: 'Invalid subject' },
+      trim: true,
+      validate: { validator: (v) => v === 'general' || (v.length <= SLUG_MAX && SLUG_RE.test(v)), message: 'Invalid subject' }, // 'general' or a service id
       default: 'general', // optional: the contact form's "What's this about?" topic
     },
     message: {

@@ -7,13 +7,13 @@ import CalendarEvent from './CalendarEvent';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import { deleteBlockedDate, getAdminCalendar } from '../../services/adminService';
-import { SHOOT_TYPES, formatDate, labelOf, toKey } from '../booking/bookingData';
+import { toKey } from '../booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 import { BLOCK_TYPES, EVENT_TYPES, buildEvents, typesOf } from '../../utils/calendarEvents';
 import { cx } from '../../utils/helpers';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const pad = (n) => String(n).padStart(2, '0');
-const shootLabel = (type) => labelOf(SHOOT_TYPES, type) || type;
 
 /**
  * Month calendar from GET /api/availability/admin/calendar.
@@ -24,6 +24,7 @@ const shootLabel = (type) => labelOf(SHOOT_TYPES, type) || type;
 export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onBlockDay, onChanged }) {
   const full = variant === 'full';
   const { token } = useAuth();
+  const { formatDate, serviceLabel: shootLabel } = useFormatters();
   const today = new Date();
   const todayKey = toKey(today);
   const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() });
@@ -39,7 +40,7 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
 
   const byDate = useMemo(
     () => Object.fromEntries((data ?? []).map((d) => [d.date, { ...d, events: buildEvents(d, shootLabel) }])),
-    [data]
+    [data, shootLabel]
   );
 
   const firstWeekday = new Date(view.year, view.month, 1).getDay();
@@ -71,7 +72,7 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
     }
   };
 
-  const legend = full ? ['booking', ...BLOCK_TYPES] : ['booking', 'blocked'];
+  const legend = full ? ['booking', ...BLOCK_TYPES, 'day_off'] : ['booking', 'blocked'];
 
   return (
     <section className="panel" aria-labelledby="acal-title">
@@ -105,8 +106,8 @@ export default function AdminCalendar({ variant = 'compact', refreshKey = 0, onB
                 type="button"
                 role="gridcell"
                 aria-pressed={key === activeKey}
-                aria-label={`${formatDate(key)}: ${events.length ? events.map((e) => e.title).join(', ') : 'free'}`}
-                className={cx('acal__day', key === todayKey && 'is-today', key < todayKey && 'is-past', key === activeKey && 'is-selected', wholeDay && `ev--${wholeDay.type} is-blocked`)}
+                aria-label={`${formatDate(key)}: ${events.length ? events.map((e) => e.title).join(', ') : byDate[key]?.label === 'day_off' ? 'day off' : 'free'}`}
+                className={cx('acal__day', key === todayKey && 'is-today', key < todayKey && 'is-past', key === activeKey && 'is-selected', wholeDay && `ev--${wholeDay.type} is-blocked`, !wholeDay && byDate[key]?.label === 'day_off' && 'ev--day_off is-blocked')}
                 onClick={() => setSelected(key)}
               >
                 <span className="acal__num">{i + 1}</span>

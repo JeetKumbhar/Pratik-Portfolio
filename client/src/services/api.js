@@ -3,7 +3,7 @@ import axios from 'axios';
 /**
  * The one place the frontend talks to the backend (Axios).
  *   api.get('/packages')                     api.post('/bookings', body)
- *   api.patch(path, body, { token })         api.delete(path, { token })      (token = admin JWT, for the Admin panel later)
+ *   api.put(path, body, { token })   api.patch(path, body, { token })         api.delete(path, { token })      (token = admin JWT, for the Admin panel later)
  *
  * Every call resolves to the response BODY ({ success, data, ... }) and every failure is an ApiError whose
  * message is safe to show to people (status 0 = server unreachable, 409 = slot just taken, 400 = invalid data).
@@ -53,6 +53,7 @@ const auth = (token) => (token ? { authed: true, headers: { Authorization: `Bear
 export const api = {
   get: (path, options = {}) => client.get(path, { params: options.params, ...auth(options.token) }),
   post: (path, body, options = {}) => client.post(path, body, auth(options.token)),
+  put: (path, body, options = {}) => client.put(path, body, auth(options.token)),
   patch: (path, body, options = {}) => client.patch(path, body, auth(options.token)),
   delete: (path, options = {}) => client.delete(path, { params: options.params, ...auth(options.token) }),
 };

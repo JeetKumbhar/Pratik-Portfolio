@@ -33,7 +33,10 @@
     "whatsapp:create-templates": "node scripts/createWhatsAppTemplates.js",
     "backfill:clients": "node scripts/backfillClients.js",
     "test:client-logic": "node scripts/testClientLogic.js",
-    "test:clients": "node scripts/testClients.js"
+    "test:clients": "node scripts/testClients.js",
+    "migrate:services": "node scripts/migrateServices.js",
+    "test:settings-logic": "node scripts/testSettingsLogic.js",
+    "test:settings": "node scripts/testSettings.js"
   },
   "keywords": [],
   "author": "",

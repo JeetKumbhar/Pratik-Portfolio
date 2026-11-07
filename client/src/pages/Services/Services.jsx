@@ -7,9 +7,11 @@ import FAQ from '../../components/services/FAQ';
 import ServiceCTA from '../../components/services/ServiceCTA';
 import useScrollAnimations from '../../hooks/useScrollAnimations';
 import { BOOKING_PATH } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
 
 export default function Services() {
   const rootRef = useRef(null);
+  const { cta } = useSite();
   useScrollAnimations(rootRef);
 
   return (
@@ -22,7 +24,7 @@ export default function Services() {
             Professional photography services for every moment that matters. Let's create something beautiful together.
           </p>
           <div className="page-hero__actions" data-hero>
-            <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>Book a shoot</Button>
+            <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>{cta}</Button>
             <Button href="#pricing" variant="ghost" size="lg">See pricing</Button>
           </div>
         </div>

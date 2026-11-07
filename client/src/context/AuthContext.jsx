@@ -76,9 +76,17 @@ export function AuthProvider({ children }) {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
+  // Password change / "log out everywhere": the server ends every OTHER session and hands this one a fresh token
+  const replaceToken = useCallback((newToken) => {
+    if (typeof newToken !== 'string' || !newToken) return;
+    saveToken(newToken);
+    setToken(newToken);
+  }, []);
+  const updateUser = useCallback((changes) => setUser((u) => (u ? { ...u, ...changes } : u)), []);
+
   const value = useMemo(
-    () => ({ user, token, status, error, isAuthenticated: status === 'authenticated', login, logout: clear, retry }),
-    [user, token, status, error, login, clear, retry]
+    () => ({ user, token, status, error, isAuthenticated: status === 'authenticated', login, logout: clear, retry, replaceToken, updateUser }),
+    [user, token, status, error, login, clear, retry, replaceToken, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

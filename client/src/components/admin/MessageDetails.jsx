@@ -6,7 +6,8 @@ import Button from '../common/Button';
 import ConfirmModal from '../common/ConfirmModal';
 import useAuth from '../../hooks/useAuth';
 import { deleteMessage, updateMessage } from '../../services/adminService';
-import { SUBJECT_OPTIONS } from '../contact/contactData';
+import { subjectLabelOptions } from '../contact/contactData';
+import useAdminServices from '../../hooks/useAdminServices';
 import { replyHref, subjectLabel } from '../../utils/messageUtils';
 
 const stamp = (iso) => new Date(iso).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
@@ -18,11 +19,12 @@ function Row({ label, children }) {
 /** One message in full, with: Reply (opens your email app) · Mark as read / unread · Delete. */
 export default function MessageDetails({ message: m, onClose, onChanged, onDeleted }) {
   const { token } = useAuth();
+  const { services } = useAdminServices();
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const panelRef = useRef(null);
-  const topic = subjectLabel(m.subject, SUBJECT_OPTIONS);
+  const topic = subjectLabel(m.subject, subjectLabelOptions(services));
   const unread = m.status === 'new';
 
   useEffect(() => { setError(''); setConfirming(false); }, [m.id]);

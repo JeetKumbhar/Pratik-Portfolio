@@ -3,7 +3,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { Booking } from '../models/index.js';
 import { cleanFeatures, isReservedName } from '../utils/packageInput.js';
-import { PACKAGE_CATEGORIES } from '../config/constants.js';
+import { SLUG_MAX, SLUG_RE } from '../config/constants.js';
 
 // @route GET /api/packages                    (public)  every active package
 // @route GET /api/packages?category=wedding   (public)  active packages for that shoot type + the "general" ones
@@ -12,8 +12,8 @@ export const getPackages = asyncHandler(async (req, res) => {
   const { category } = req.query;
 
   if (category !== undefined) {
-    if (typeof category !== 'string' || !PACKAGE_CATEGORIES.includes(category)) {
-      const err = new Error(`Invalid category. Use one of: ${PACKAGE_CATEGORIES.join(', ')}`);
+    if (typeof category !== 'string' || category.length > SLUG_MAX || !(category === 'general' || SLUG_RE.test(category))) {
+      const err = new Error('Invalid category. Use "general" or a service id such as "wedding".');
       err.statusCode = 400;
       throw err;
     }

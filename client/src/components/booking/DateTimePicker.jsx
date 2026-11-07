@@ -5,14 +5,17 @@ import StepNav from './StepNav';
 import useBooking from '../../hooks/useBooking';
 import { cx } from '../../utils/helpers';
 import { getAvailability, getTimeSlots } from '../../services/bookingService';
-import { formatDate, formatTime, toKey } from './bookingData';
+import { toKey } from './bookingData';
+import useSettings, { useFormatters } from '../../hooks/useSettings';
 import { validateDateTime } from './bookingValidation';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STATUS_TEXT = { available: 'available', limited: 'limited availability', unavailable: 'unavailable' };
 
 export default function DateTimePicker() {
-  const { values, update, next, selectedPackage } = useBooking();
+  const { values, update, next, selectedPackage, rules } = useBooking();
+  const { formatDate, formatTime } = useFormatters();
+  const { settings } = useSettings();
   // A longer package needs more free hours in a row, so availability depends on it
   const durationHours = selectedPackage?.durationHours ?? 1;
   const [errors, setErrors] = useState({});
@@ -72,12 +75,12 @@ export default function DateTimePicker() {
   const pickTime = (time) => { update({ time }); setErrors({}); };
 
   const onNext = () => {
-    const found = validateDateTime(values);
+    const found = validateDateTime(values, rules);
     setErrors(found);
     if (!Object.keys(found).length) next();
   };
 
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeZone = settings.general.timezone; // the slots are the studio's hours, whatever the visitor's own timezone
 
   return (
     <div className="step">
@@ -136,7 +139,7 @@ export default function DateTimePicker() {
         {/* ---------- Time slots ---------- */}
         <section aria-labelledby="dt-time">
           <h2 id="dt-time" className="block__title">Select a time</h2>
-          <p className="block__hint">All times shown in your local time ({timeZone}).</p>
+          <p className="block__hint">All times are studio time ({timeZone}).</p>
 
           {!values.date && <p className="dt__empty">Choose a date to see available times.</p>}
           {values.date && !slots && <div className="dt__empty"><Loader label="Loading times" /></div>}

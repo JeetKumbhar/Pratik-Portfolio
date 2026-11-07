@@ -255,3 +255,6 @@
 .public-layout { min-height: 100vh; display: flex; flex-direction: column; }
 .public-layout__main { flex: 1; }
 .page-transition { animation: page-in 0.4s var(--ease); }
+
+/* The logo picture from Settings → General (shown next to the name; the name stays for readers and when there is no logo) */
+.logo__img { display: block; height: 34px; width: auto; max-width: 140px; object-fit: contain; }

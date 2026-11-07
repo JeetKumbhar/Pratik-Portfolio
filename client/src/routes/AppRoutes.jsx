@@ -19,6 +19,8 @@ import Messages from "../pages/Admin/Messages";
 import Notifications from "../pages/Admin/Notifications";
 import Clients from "../pages/Admin/Clients";
 import ClientProfile from "../pages/Admin/ClientProfile";
+import Settings from "../pages/Admin/Settings";
+import FeatureGate from "../components/common/FeatureGate";
 
 /**
  * Temporary stand-in for pages that aren't built yet.
@@ -37,11 +39,11 @@ export default function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
-        <Route path="portfolio" element={<Portfolio />} />
+        <Route path="portfolio" element={<FeatureGate feature="portfolio"><Portfolio /></FeatureGate>} />
         <Route path="services" element={<Services />} />
         <Route path="booking" element={<Booking />} />
         <Route path="blog" element={<Placeholder title="Blog" />} />
-        <Route path="contact" element={<Contact />} />
+        <Route path="contact" element={<FeatureGate feature="contact"><Contact /></FeatureGate>} />
         <Route path="gallery/:id" element={<Placeholder title="Client Gallery" />} />
         <Route path="login" element={<Navigate to="/admin/login" replace />} />
         <Route path="*" element={<NotFound />} />
@@ -61,7 +63,7 @@ export default function AppRoutes() {
           <Route path="portfolio" element={<AdminPortfolio />} />
           <Route path="packages" element={<Packages />} />
           <Route path="messages" element={<Messages />} />
-          <Route path="settings" element={<Placeholder title="Settings" />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="*" element={<NotFound />} />
         </Route>

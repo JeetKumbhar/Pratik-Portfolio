@@ -1,22 +1,17 @@
+
 import { useState } from 'react';
 import { Calendar, ChevronRight, Play, Mouse } from 'lucide-react';
-import { FaInstagram, FaWhatsapp } from 'react-icons/fa6';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
-import { BOOKING_PATH, SITE } from '../../utils/constants';
+import { BOOKING_PATH } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
+import { SOCIAL_ICONS } from '../layout/socialIcons';
 import { HERO_STATS, IMAGES } from './homeData';
-
-const RAIL = [
-  { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-  { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
-  // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-  // { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
-  // { label: 'Behance', href: 'https://behance.net/', Icon: FaBehance },
-];
 
 export default function HeroSection() {
   const [reelOpen, setReelOpen] = useState(false);
   const [reelError, setReelError] = useState(false);
+  const { social, cta } = useSite(); // the side icons are the social links filled in under Settings → Business
 
   return (
     <section className="hero" style={{ '--hero-img': `url("${IMAGES.hero}")` }}>
@@ -34,7 +29,7 @@ export default function HeroSection() {
 
           <div className="hero__actions">
             <Button to={BOOKING_PATH} size="lg" icon={<Calendar size={18} />} iconRight={<ChevronRight size={18} />}>
-              Book a shoot
+              {cta}
             </Button>
             <Button variant="ghost" size="lg" icon={<Play size={18} />} onClick={() => setReelOpen(true)}>
               View showreel
@@ -42,13 +37,18 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <ul className="hero__rail" aria-label="Social links">
-          {RAIL.map(({ label, href, Icon }) => (
-            <li key={label}>
-              <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label}><Icon size={22} /></a>
-            </li>
-          ))}
-        </ul>hie
+        {social.length > 0 && (
+          <ul className="hero__rail" aria-label="Social links">
+            {social.map(({ key, label, href }) => {
+              const Icon = SOCIAL_ICONS[key];
+              return (
+                <li key={key}>
+                  <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label}><Icon size={22} /></a>
+                </li>
+              );
+            })}
+          </ul>
+        )}hie
 
         <div className="hero__scroll" aria-hidden="true"><Mouse size={22} strokeWidth={1.3} /><span>Scroll down</span></div>
 

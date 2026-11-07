@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Unlock } from 'lucide-react';
 import Badge from '../common/Badge';
-import { formatTime, fromKey } from '../booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 import { cx } from '../../utils/helpers';
 
 /**
@@ -11,7 +11,7 @@ import { cx } from '../../utils/helpers';
  */
 export default function CalendarEvent({ event, variant = 'row', onRemove }) {
   const colour = `ev--${event.type}`;
-  const shortDate = (key) => fromKey(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const { formatDate: shortDate, formatTime } = useFormatters();
 
   if (variant === 'chip') {
     return <span className={cx('cev-chip', colour)}>{event.kind === 'booking' ? event.subtitle : event.title}</span>;

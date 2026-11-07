@@ -3,10 +3,22 @@ import { Booking, BlockedDate } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { ACTIVE_BOOKING_STATUSES } from '../config/constants.js';
-import { dateKey } from '../utils/availability.js';
+import { addDays, isDateKey, todayKey } from '../utils/validators.js';
 import { datesInRange, findConflicts } from '../utils/blockedDates.js';
 
 const str = (v) => (typeof v === 'string' ? v : undefined);
+
+// @route GET /api/blocked-dates?from=2026-11-01&to=2027-03-31   (ADMIN)   default: today onwards (max 400 days)
+// One row per blocked day, soonest first. Used by Admin → Settings → Availability to list holidays and vacations.
+export const listBlockedDates = asyncHandler(async (req, res) => {
+  const from = str(req.query.from) ?? todayKey();
+  const to = str(req.query.to) ?? addDays(from, 400);
+  if (!isDateKey(from) || !isDateKey(to)) throw httpError(400, 'from and to must be YYYY-MM-DD');
+  if (to < from) throw httpError(400, 'to cannot be before from');
+  const rows = await BlockedDate.find({ date: { $gte: from, $lte: to } }).sort({ date: 1 }).limit(500)
+    .select('date type reason note blockedTimes groupId');
+  res.json({ success: true, count: rows.length, data: rows });
+});
 
 // @route POST /api/blocked-dates   (ADMIN)
 // body: { type, startDate, endDate?, blockedTimes?: ['14:00', ...], reason?, note?, force? }
@@ -23,8 +35,7 @@ export const createBlockedDates = asyncHandler(async (req, res) => {
   let dates;
   try { dates = datesInRange(start, end); } catch (err) { throw httpError(400, err.message); }
 
-  const now = new Date();
-  if (dates[0] < dateKey(now.getFullYear(), now.getMonth(), now.getDate())) throw httpError(400, 'You can only block today or later dates.');
+  if (dates[0] < todayKey()) throw httpError(400, 'You can only block today or later dates.'); // "today" in the business timezone
 
   const docs = dates.map((date) => new BlockedDate({
     date,

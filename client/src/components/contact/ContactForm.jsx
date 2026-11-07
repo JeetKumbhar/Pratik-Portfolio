@@ -6,11 +6,13 @@ import Textarea from '../common/Textarea';
 import Button from '../common/Button';
 import { sendMessage } from '../../services/contactService';
 import { validateContact, MESSAGE_MAX } from './contactValidation';
-import { SUBJECT_OPTIONS } from './contactData';
+import { subjectOptions } from './contactData';
+import useSettings from '../../hooks/useSettings';
 
 const EMPTY = { name: '', email: '', phone: '', subject: '', message: '', website: '' };
 
 export default function ContactForm() {
+  const { services } = useSettings();
   const [values, setValues] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
@@ -79,7 +81,7 @@ export default function ContactForm() {
         <Input id="contact-phone" name="phone" type="tel" label="Phone (optional)" autoComplete="tel" icon={<Phone size={18} />}
           placeholder="+91 xxxxx xxxxx" value={values.phone} onChange={set('phone')} error={errors.phone} />
         <Select id="contact-subject" name="subject" label="What's this about?" required icon={<MessageSquare size={18} />}
-          placeholder="Select a topic" options={SUBJECT_OPTIONS} value={values.subject} onChange={set('subject')} error={errors.subject} />
+          placeholder="Select a topic" options={subjectOptions(services)} value={values.subject} onChange={set('subject')} error={errors.subject} />
       </div>
 
       <Textarea id="contact-message" name="message" label="Your message" required maxLength={MESSAGE_MAX}

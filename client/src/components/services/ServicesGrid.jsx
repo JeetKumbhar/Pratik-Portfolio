@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import SectionTitle from '../common/SectionTitle';
 import ServiceCard from './ServiceCard';
-import { SERVICES } from './servicesData';
+import useSettings from '../../hooks/useSettings';
+import { presentServices } from './servicePresentation';
 import { getServiceFeaturedPortfolio } from '../../services/portfolioService';
 
 export default function ServicesGrid() {
+  const { services } = useSettings();
+  const cards = presentServices(services);
   const [photos, setPhotos] = useState([]);
 
   useEffect(() => {
@@ -26,6 +29,8 @@ export default function ServicesGrid() {
 
   const photosByCategory = new Map(photos.map((photo) => [photo.category, photo]));
 
+  if (cards.length === 0) return null;
+
   return (
     <section className="home-section">
       <div className="container">
@@ -37,7 +42,7 @@ export default function ServicesGrid() {
           serif split
         />
         <ul className="svc-grid" data-stagger>
-          {SERVICES.map((service) => (
+          {cards.map((service) => (
             <li key={service.id}><ServiceCard service={service} photo={photosByCategory.get(service.id)} /></li>
           ))}
         </ul>

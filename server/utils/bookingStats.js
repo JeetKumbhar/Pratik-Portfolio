@@ -36,7 +36,7 @@ export async function computeBookingStats(now = new Date()) {
     Booking.find({ date: { $gte: today }, status: { $in: ACTIVE_BOOKING_STATUSES } })
       .sort({ date: 1, time: 1 })
       .limit(5)
-      .select('bookingId name shootType date time status package.name package.price'),
+      .select('bookingId name shootType shootTypeName date time status package.name package.price'),
   ]);
 
   const s = summarizeStatuses(byStatus);

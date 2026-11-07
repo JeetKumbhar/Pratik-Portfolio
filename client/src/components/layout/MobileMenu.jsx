@@ -7,8 +7,10 @@ import { Logo } from './Navbar';
 import SocialLinks from './SocialLinks';
 import { NAV_LINKS, BOOKING_PATH } from '../../utils/constants';
 import { cx } from '../../utils/helpers';
+import { useSite } from '../../hooks/useSettings';
 
 export default function MobileMenu({ isOpen, onClose }) {
+  const { nav, cta } = useSite();
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -34,7 +36,7 @@ export default function MobileMenu({ isOpen, onClose }) {
         </div>
 
         <nav className="mobile-menu__nav" aria-label="Mobile">
-          {NAV_LINKS.map(({ label, to }) => (
+          {nav(NAV_LINKS).map(({ label, to }) => (
             <NavLink
               key={to}
               to={to}
@@ -49,9 +51,9 @@ export default function MobileMenu({ isOpen, onClose }) {
 
         <div className="mobile-menu__footer">
           <Button to={BOOKING_PATH} fullWidth icon={<Calendar size={16} />} onClick={onClose}>
-            Book a shoot
+            {cta}
           </Button>
-          <SocialLinks includePinterest={false} />
+          <SocialLinks />
         </div>
       </aside>
     </div>,

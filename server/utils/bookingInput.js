@@ -1,6 +1,6 @@
 import httpError from './httpError.js';
 import { isDateKey } from './validators.js';
-import { BOOKING_STATUSES, SHOOT_TYPES } from '../config/constants.js';
+import { BOOKING_STATUSES, SLUG_MAX, SLUG_RE } from '../config/constants.js';
 
 /**
  * Request-body / query helpers for bookings.
@@ -84,8 +84,8 @@ export function parseListQuery(query = {}) {
 
   const shootType = one('shootType');
   if (shootType) {
-    if (SHOOT_TYPES.includes(shootType)) filter.shootType = shootType;
-    else errors.shootType = `Use one of: ${SHOOT_TYPES.join(', ')}`;
+    if (shootType.length <= SLUG_MAX && SLUG_RE.test(shootType)) filter.shootType = shootType;
+    else errors.shootType = 'Use a service id such as "wedding"';
   }
 
   const date = one('date');

@@ -37,8 +37,9 @@ export function sign(params, secret) {
 }
 
 /** What the browser needs to upload ONE image directly to Cloudinary. */
-export function createUploadSignature(now = Date.now()) {
-  const { cloudName, apiKey, apiSecret, folder } = cfg();
+export function createUploadSignature(now = Date.now(), subfolder = '') {
+  const { cloudName, apiKey, apiSecret, folder: baseFolder } = cfg();
+  const folder = subfolder ? `${baseFolder}/${subfolder}` : baseFolder; // still inside our folder, so isOwnImage() accepts it
   const timestamp = Math.floor(now / 1000);
   const signature = sign({ allowed_formats: ALLOWED_FORMATS, folder, timestamp }, apiSecret);
   return { cloudName, apiKey, timestamp, folder, allowedFormats: ALLOWED_FORMATS, signature };
@@ -51,12 +52,22 @@ export function createUploadSignature(now = Date.now()) {
 export function isOwnImage({ url, publicId }) {
   const { cloudName, folder } = cfg();
   if (!cloudName || typeof url !== 'string' || typeof publicId !== 'string') return false;
-  return (
-    url.startsWith(`https://res.cloudinary.com/${cloudName}/image/upload/`) &&
-    publicId.startsWith(`${folder}/`) &&
-    !publicId.includes('..') &&
-    url.includes(publicId)
-  );
+  if (!publicId.startsWith(`${folder}/`) || publicId.split('/').some((p) => p === '' || p === '.' || p === '..')) return false;
+
+  // The address is parsed, not just compared as text: no "..", no "#" or "?" tricks, no other host or account
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== 'https:' || u.hostname !== 'res.cloudinary.com' || u.port || u.username || u.password || u.search || u.hash) return false;
+  if (u.href !== url) return false; // the stored text is exactly what was checked
+  const segments = u.pathname.split('/');
+  if (segments.some((p) => p === '.' || p === '..' || p.toLowerCase().includes('%2e'))) return false;
+  return u.pathname.startsWith(`/${cloudName}/image/upload/`) && u.pathname.includes(`/${publicId}`);
+}
+
+/** Logo, favicon, sharing image and service covers live in the "branding" subfolder only (see createUploadSignature). */
+export const BRANDING_SUBFOLDER = 'branding';
+export function isOwnBrandingImage(image) {
+  return isOwnImage(image) && image.publicId.startsWith(`${cfg().folder}/${BRANDING_SUBFOLDER}/`);
 }
 
 /** Removes the file from Cloudinary (and its CDN cache). Resolves true when it is gone; throws on a network/API failure. */

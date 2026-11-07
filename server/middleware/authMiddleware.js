@@ -12,6 +12,10 @@ export const protect = asyncHandler(async (req, res, next) => {
   const user = await User.findById(decoded.id);
   if (!user) throw httpError(401, 'Not authorized. Please log in again.');
 
+  // Tokens made before "log out everywhere" existed have no `tv`: they count as version 0, like a user who never used it
+  if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) throw httpError(401, 'Your session has ended. Please log in again.');
+
   req.user = user;
+  req.tokenInfo = { issuedAt: decoded.iat, expiresAt: decoded.exp };
   next();
 });

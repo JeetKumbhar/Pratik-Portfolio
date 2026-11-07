@@ -1,8 +1,10 @@
 import { Calendar, ArrowRight } from 'lucide-react';
 import Button from '../common/Button';
 import { BOOKING_PATH } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
 
 export default function CTASection() {
+  const { cta } = useSite();
   return (
     <section className="home-section">
       <div className="container">
@@ -12,7 +14,7 @@ export default function CTASection() {
             <h2 className="cta__title">Ready to capture your moment?</h2>
             <p>Book a session today and let's create something amazing together.</p>
           </div>
-          <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>Book a shoot</Button>
+          <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>{cta}</Button>
         </div>
       </div>
     </section>

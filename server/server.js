@@ -19,6 +19,10 @@ import blockedDateRoutes from './routes/blockedDateRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
+import serviceRoutes from './routes/serviceRoutes.js';
+import { getSettings } from './utils/settings.js';
+import { seedDefaultServices } from './utils/services.js';
 
 import notificationRoutes from './routes/notificationRoutes.js';
 import whatsappWebhookRoutes from './routes/whatsappWebhookRoutes.js';
@@ -58,6 +62,8 @@ app.use('/api/blocked-dates', blockedDateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/services', serviceRoutes);
 
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/whatsapp', whatsappInboxRoutes);
@@ -88,6 +94,9 @@ async function start() {
     await connectDB();
     // Make sure every unique/other index exists before accepting requests
     await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
+    // Admin → Settings: create the six starting services once, and load the saved timezone / country code before the first request
+    await seedDefaultServices();
+    await getSettings({ fresh: true });
   } catch (err) {
     console.error(`\nCould not start: ${err.message}`);
     const hint = explainMongoError(err);

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {
-  SHOOT_TYPES, LOCATIONS, STYLES, MAX_STYLES, BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, BOOKING_RULES, MAX_DURATION_HOURS,
+  SLUG_MAX, SLUG_RE, LOCATIONS, STYLES, MAX_STYLES, BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, BOOKING_RULES, MAX_DURATION_HOURS,
 } from '../config/constants.js';
 import { isEmail, isPhone, isDateKey, isBookableTime } from '../utils/validators.js';
 import { generateBookingId } from '../utils/generateBookingId.js';
@@ -22,22 +22,41 @@ import { generateBookingId } from '../utils/generateBookingId.js';
  *   submit overlapping times at the same moment (the second gets error 11000 → 409 "slot taken").
  *   IMPORTANT: change status/date/time with doc.save() (not findByIdAndUpdate) so slotKeys is recomputed.
  */
+/** required: true for a new booking (unless made optional in settings); for an existing one only when that field is being changed */
+function requiredField(field) {
+  return function isRequired() {
+    if (this.isNew) return this.$locals?.optional?.[field] !== true;
+    return this.isModified(field) && this.$locals?.optional?.[field] !== true;
+  };
+}
+
 const bookingSchema = new mongoose.Schema(
   {
     bookingId: { type: String, default: generateBookingId, unique: true, immutable: true },
 
     name: { type: String, required: [true, 'Name is required'], trim: true, minlength: [2, 'Name must be at least 2 characters'], maxlength: 80 },
+    // Email, phone and location are required for NEW bookings unless Admin → Settings → Booking made them optional (the controller sets
+    // doc.$locals.optional). An existing booking is only re-checked when that field is edited, so a booking saved without an email
+    // can still be updated (status, notes ...). When a value IS given it must always be valid.
     email: {
-      type: String, required: [true, 'Email is required'], trim: true, lowercase: true,
-      validate: { validator: isEmail, message: 'Enter a valid email address' },
+      type: String, trim: true, lowercase: true, default: '',
+      required: [requiredField('email'), 'Email is required'],
+      validate: { validator: (v) => !v || isEmail(v), message: 'Enter a valid email address' },
     },
     phone: {
-      type: String, required: [true, 'Phone number is required'], trim: true,
-      validate: { validator: isPhone, message: 'Enter a valid phone number' },
+      type: String, trim: true, default: '',
+      required: [requiredField('phone'), 'Phone number is required'],
+      validate: { validator: (v) => !v || isPhone(v), message: 'Enter a valid phone number' },
     },
 
-    shootType: { type: String, required: [true, 'Shoot type is required'], enum: { values: SHOOT_TYPES, message: 'Invalid shoot type' } },
-    location: { type: String, required: [true, 'Location is required'], enum: { values: LOCATIONS, message: 'Invalid location option' } },
+    // `shootType` is a service id (Service.slug, set in Admin → Settings → Photography Services), no longer a fixed list.
+    // The controller checks that it is an active service. `shootTypeName` is the name the service had when this booking was made.
+    shootType: { type: String, required: [true, 'Shoot type is required'], trim: true, maxlength: SLUG_MAX, match: [SLUG_RE, 'Invalid shoot type'] },
+    shootTypeName: { type: String, trim: true, maxlength: 60, default: '' },
+    location: {
+      type: String, required: [requiredField('location'), 'Location is required'],
+      enum: { values: LOCATIONS, message: 'Invalid location option' },
+    },
     locationDetails: { type: String, trim: true, maxlength: 200, default: '' }, // "Mountain Lake, Banff"
 
     numberOfPeople: {

@@ -1,20 +1,20 @@
-import { FaInstagram, FaWhatsapp, FaFacebookF, FaPinterestP } from 'react-icons/fa6';
-import { SITE } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
+import { SOCIAL_ICONS } from './socialIcons';
 
-export default function SocialLinks({ includePinterest = true }) {
-  const items = [
-    { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-    { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
-    // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-    // ...(includePinterest ? [{ label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP }] : []),
-  ];
+/** Social icons for the footer and the mobile menu: only the links filled in under Settings → Business. */
+export default function SocialLinks() {
+  const { social } = useSite();
+  if (social.length === 0) return null;
   return (
     <div className="footer__social">
-      {items.map(({ label, href, Icon }) => (
-        <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}>
-          <Icon size={18} />
-        </a>
-      ))}
+      {social.map(({ key, label, href }) => {
+        const Icon = SOCIAL_ICONS[key];
+        return (
+          <a key={key} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}>
+            <Icon size={18} />
+          </a>
+        );
+      })}
     </div>
   );
 }

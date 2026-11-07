@@ -1,27 +1,26 @@
-import { FaInstagram, FaWhatsapp, FaFacebookF, FaPinterestP } from 'react-icons/fa6';
-import { SITE } from '../../utils/constants';
-import { WHATSAPP_URL } from './contactData';
+import { useSite } from '../../hooks/useSettings';
+import { SOCIAL_ICONS } from '../layout/socialIcons';
 
-const LINKS = [
-  { label: 'Instagram', href: SITE.social.instagram, Icon: FaInstagram },
-  { label: 'WhatsApp', href: SITE.social.whatsapp, Icon: FaWhatsapp },
-  // { label: 'Facebook', href: SITE.social.facebook, Icon: FaFacebookF },
-  // { label: 'Pinterest', href: SITE.social.pinterest, Icon: FaPinterestP },
-];
-
+/** "Find me online": only the links filled in under Settings → Business (nothing at all if there are none). */
 export default function SocialLinks() {
+  const { social } = useSite();
+  if (social.length === 0) return null;
+
   return (
     <div className="social-box">
       <h3 className="social-box__title">Find me online</h3>
       <ul className="social-box__list">
-        {LINKS.map(({ label, href, Icon }) => (
-          <li key={label}>
-            <a className="social-link" href={href} target="_blank" rel="noopener noreferrer">
-              <Icon size={18} aria-hidden="true" />
-              {label}
-            </a>
-          </li>
-        ))}
+        {social.map(({ key, label, href }) => {
+          const Icon = SOCIAL_ICONS[key];
+          return (
+            <li key={key}>
+              <a className="social-link" href={href} target="_blank" rel="noopener noreferrer">
+                <Icon size={18} aria-hidden="true" />
+                {label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

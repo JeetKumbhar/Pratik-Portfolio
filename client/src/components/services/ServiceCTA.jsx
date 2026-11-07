@@ -1,8 +1,10 @@
 import { Calendar, ArrowRight } from 'lucide-react';
 import Button from '../common/Button';
 import { BOOKING_PATH } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
 
 export default function ServiceCTA() {
+  const { cta, contactEnabled } = useSite();
   return (
     <section className="home-section">
       <div className="container">
@@ -13,8 +15,8 @@ export default function ServiceCTA() {
             <p>Book a session today and let's create something amazing together.</p>
           </div>
           <div className="cta__actions">
-            <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>Book a shoot</Button>
-            <Button to="/contact" variant="ghost" size="lg">Ask a question</Button>
+            <Button to={BOOKING_PATH} size="lg" iconRight={<ArrowRight size={18} />}>{cta}</Button>
+            {contactEnabled && <Button to="/contact" variant="ghost" size="lg">Ask a question</Button>}
           </div>
         </div>
       </div>

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Badge from '../common/Badge';
-import { SHOOT_TYPES, formatDate, formatTime, labelOf, money } from '../booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 
 const STATUS_VARIANT = { pending: 'warning', confirmed: 'success', completed: 'neutral', cancelled: 'danger' };
 
 export default function RecentBookings({ bookings = [], loading, error, onRetry }) {
+  const { money, formatDate, formatTime, serviceLabel } = useFormatters();
   return (
     <section className="panel" aria-labelledby="recent-title">
       <header className="panel__head">
@@ -39,7 +40,7 @@ export default function RecentBookings({ bookings = [], loading, error, onRetry 
                   <small>{b.reference}</small>
                 </span>
                 <span className="recent__when">
-                  {labelOf(SHOOT_TYPES, b.shootType) || b.shootType}
+                  {serviceLabel(b.shootType, b.shootTypeName)}
                   <small>{formatDate(b.date)} · {formatTime(b.time)}</small>
                 </span>
                 <span className="recent__pkg">

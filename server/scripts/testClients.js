@@ -31,7 +31,7 @@ const { Aggregator, Query } = await import('mingo').catch(() => {
   console.log('SKIPPED: this test needs the "mingo" dev dependency. Run: npm install');
   process.exit(1);
 });
-const { Booking, BlockedDate, Client, ClientNote, Package, User, WhatsAppConversation } = await import('../models/index.js');
+const { Booking, BlockedDate, Client, ClientNote, Package, Service, Setting, User, WhatsAppConversation } = await import('../models/index.js');
 const { signToken } = await import('../utils/token.js');
 const { errorHandler, notFound } = await import('../middleware/errorMiddleware.js');
 const { default: clientRoutes } = await import('../routes/clientRoutes.js');
@@ -162,6 +162,9 @@ Booking.prototype.save = async function saveBooking() {
   return this;
 };
 BlockedDate.find = () => query(() => []);
+// Booking now reads the Settings document (none saved here → defaults) and checks the service exists (services are records now).
+Setting.findOne = () => ({ lean: async () => null });
+Service.findOne = async ({ slug }) => ({ slug, name: slug.charAt(0).toUpperCase() + slug.slice(1), active: true });
 Package.findOne = async ({ slug }) => ({ _id: new mongoose.Types.ObjectId(), slug, name: 'Standard', price: 5000, duration: '1 hour', durationHours: 1 });
 const realClientCreate = Client.create;
 
@@ -611,7 +614,7 @@ await test('[36] history lists the client\'s own bookings with the right fields,
   assert.deepEqual(all.json.counts, { all: 6, upcoming: 3, completed: 1, cancelled: 1 });
   assert.equal(all.json.data.length, 6);
   assert.ok(!all.json.data.some((b) => b.reference === 'AM-000099'));
-  assert.deepEqual(Object.keys(all.json.data[0]).sort(), ['createdAt', 'date', 'id', 'packageName', 'reference', 'shootType', 'status', 'time']);
+  assert.deepEqual(Object.keys(all.json.data[0]).sort(), ['createdAt', 'date', 'id', 'packageName', 'reference', 'shootType', 'shootTypeName', 'status', 'time']);
   assert.deepEqual(all.json.data.map((b) => b.date), [...all.json.data.map((b) => b.date)].sort().reverse()); // newest shoot first
   assert.equal(all.json.data.find((b) => b.reference === 'AM-000001').packageName, 'Gold');
 

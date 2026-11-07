@@ -19,13 +19,35 @@ export const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed'];
 
 export const BOOKING_RULES = { openHour: 7, closeHour: 21, maxAdvanceDays: 730 };
 
+/**
+ * Photography services are records in the database now (models/Service.js, managed in Admin → Settings). These six are only the
+ * starting set, created once on first start. `slug` is the stable id stored on bookings (the same values SHOOT_TYPES always had).
+ */
+export const DEFAULT_SERVICES = [
+  { slug: 'wedding', name: 'Weddings', description: 'Timeless wedding photography that captures every emotion and beautiful moment.' },
+  { slug: 'pre-wedding', name: 'Pre-weddings', description: 'Beautiful pre-wedding shoots capturing the chemistry, love and story of couples.' },
+  { slug: 'portrait', name: 'Portrait', description: 'Professional portraits for individuals, professionals and personal branding.' },
+  { slug: 'baby-shoot', name: 'Baby-Shoots', description: 'Heartwarming baby photography capturing precious little moments.' },
+  { slug: 'events', name: 'Events', description: 'Corporate events, parties and special occasions covered with care and creativity.' },
+  { slug: 'commercial', name: 'Commercial', description: 'High-quality imagery for brands, products and marketing campaigns.' },
+];
+/** What a service / shoot-type id looks like (lowercase words joined by hyphens). Used instead of a fixed list, because the admin can add services. */
+export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SLUG_MAX = 40;
+
+/** Admin → Settings groups (one object each inside the single Setting document) */
+export const SETTINGS_GROUPS = ['general', 'business', 'booking', 'availability', 'notifications', 'website', 'seo'];
+export const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 /** Why the photographer is unavailable on a day (or on some hours of a day) */
-export const BLOCKED_DATE_TYPES = ['offline_booking', 'editing', 'vacation', 'personal', 'other'];
+export const BLOCKED_DATE_TYPES = ['offline_booking', 'editing', 'vacation', 'personal', 'public_holiday', 'fully_booked', 'other'];
 export const BLOCKED_DATE_LABELS = {
   offline_booking: 'Offline booking', // a job taken by phone / in person, not through the website
   editing: 'Editing',
   vacation: 'Vacation',
   personal: 'Personal',
+  public_holiday: 'Public holiday',
+  fully_booked: 'Fully booked',
   other: 'Other',
 };
 

@@ -99,12 +99,19 @@ export function validatePhone(phone, { required = true } = {}) {
   return '';
 }
 
+/**
+ * `rules` come from Admin → Settings → Booking (see BookingContext). Without them everything is required, as it always was:
+ *   { emailRequired, phoneRequired, locationRequired, minAdvanceDays, maxAdvanceDays, today }
+ * A field that is optional may be left empty, but if something is typed it must still be valid.
+ */
+const optionalWhen = (required) => required === false;
+
 /** Step 1 */
-export function validateDetails({ name, email, phone }) {
+export function validateDetails({ name, email, phone }, rules = {}) {
   const errors = {};
   const nameError = validateName(name);
-  const emailError = validateEmail(email);
-  const phoneError = validatePhone(phone);
+  const emailError = optionalWhen(rules.emailRequired) && isBlank(email) ? '' : validateEmail(email);
+  const phoneError = validatePhone(phone, { required: !optionalWhen(rules.phoneRequired) });
   if (nameError) errors.name = nameError;
   if (emailError) errors.email = emailError;
   if (phoneError) errors.phone = phoneError;
@@ -118,13 +125,13 @@ export function validateDetails({ name, email, phone }) {
  */
 export function validatePreferences(values, options = {}) {
   const { shootType, location, people, styles = [], requests = '', packageId } = values;
-  const { shootTypes, locations, packageIds } = options;
+  const { shootTypes, locations, packageIds, rules = {} } = options;
   const errors = {};
 
   if (isBlank(shootType)) errors.shootType = 'Choose a type of shoot.';
   else if (shootTypes && !shootTypes.includes(shootType)) errors.shootType = 'Choose a valid type of shoot.';
 
-  if (isBlank(location)) errors.location = 'Choose where the shoot should take place.';
+  if (isBlank(location)) { if (!optionalWhen(rules.locationRequired)) errors.location = 'Choose where the shoot should take place.'; }
   else if (locations && !locations.includes(location)) errors.location = 'Choose a valid location option.';
 
   if (!Number.isInteger(people) || people < LIMITS.peopleMin || people > LIMITS.peopleMax) {
@@ -142,12 +149,21 @@ export function validatePreferences(values, options = {}) {
   return errors;
 }
 
-/** Step 3 */
-export function validateDateTime({ date, time }) {
+/** Step 3. With `rules.today` (the business's "today") the saved minimum/maximum notice is used; the server repeats the check. */
+export function validateDateTime({ date, time }, rules = {}) {
   const errors = {};
+  const dayNumber = (key) => { const [y, m, d] = key.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); };
+  const useRules = typeof rules.today === 'string' && isDateKey(rules.today);
 
   if (isBlank(date)) errors.date = 'Pick a date.';
   else if (!isDateKey(date)) errors.date = 'Pick a valid date.';
+  else if (useRules) {
+    const ahead = dayNumber(date) - dayNumber(rules.today);
+    const min = Number.isInteger(rules.minAdvanceDays) ? rules.minAdvanceDays : 1;
+    const max = Number.isInteger(rules.maxAdvanceDays) ? rules.maxAdvanceDays : BOOKING_RULES.maxAdvanceDays;
+    if (ahead < min) errors.date = min === 0 ? 'Pick today or a later date.' : min === 1 ? 'Pick a date after today.' : `Bookings need at least ${min} days' notice. Pick a later date.`;
+    else if (ahead > max) errors.date = 'That date is too far ahead to book yet. Pick an earlier one.';
+  }
   else if (!isFutureDate(date)) errors.date = 'Pick a date after today.';
   else if (!isWithinAdvance(date)) errors.date = 'That date is too far ahead to book yet. Pick an earlier one.';
 
@@ -164,9 +180,9 @@ export function validateDateTime({ date, time }) {
  */
 export function validateBooking(values, options = {}) {
   const errors = {
-    1: validateDetails(values),
+    1: validateDetails(values, options.rules),
     2: validatePreferences(values, options),
-    3: validateDateTime(values),
+    3: validateDateTime(values, options.rules),
   };
   const firstInvalidStep = [1, 2, 3].find((step) => Object.keys(errors[step]).length > 0) ?? null;
   return { isValid: firstInvalidStep === null, errors, firstInvalidStep };

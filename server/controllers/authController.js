@@ -18,7 +18,7 @@ export const login = asyncHandler(async (req, res) => {
   const valid = await bcrypt.compare(password, user?.password ?? DUMMY_HASH);
   if (!user || !valid) throw httpError(401, 'Invalid email or password');
 
-  res.json({ success: true, token: signToken(user._id), user });
+  res.json({ success: true, token: signToken(user._id, user.tokenVersion ?? 0), user });
 });
 
 // @route GET /api/auth/me   (needs a token) → who am I

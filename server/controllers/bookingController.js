@@ -2,12 +2,14 @@ import { Booking, Package } from '../models/index.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { isDateKey } from '../utils/validators.js';
-import { BOOKING_STATUSES, BOOKING_STATUS_FLOW, ACTIVE_BOOKING_STATUSES, SHOOT_TYPES, CUSTOM_DURATION_HOURS } from '../config/constants.js';
+import { BOOKING_STATUSES, BOOKING_STATUS_FLOW, ACTIVE_BOOKING_STATUSES, SLUG_MAX, SLUG_RE } from '../config/constants.js';
 import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js';
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 import { notifyBookingCreated, notifyBookingStatusChanged } from '../utils/notificationHelper.js';
 import { computeBookingStats } from '../utils/bookingStats.js';
 import { safeLinkBooking } from '../utils/clients.js';
+import { getSettings } from '../utils/settings.js';
+import { findService } from '../utils/services.js';
 
 // ---------------------------------------------------------------- helpers
 const str = (v) => (typeof v === 'string' ? v : undefined);
@@ -15,12 +17,16 @@ const num = (v) => { const n = Number(v); return v !== '' && v !== null && Numbe
 const strArray = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const CUSTOM_PACKAGE = { slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed', durationHours: CUSTOM_DURATION_HOURS };
+/** "Not sure yet" bookings last as long as Admin → Settings → Booking says (default 2 hours) */
+const customPackage = (settings) => ({ slug: 'custom', name: 'Not sure yet', price: null, duration: 'To be discussed', durationHours: settings.booking.customDurationHours });
+
+/** A 400 with a message under one field, like Mongoose validation errors */
+const fieldError = (field, message) => Object.assign(httpError(400, 'Validation failed'), { fieldErrors: { [field]: message } });
 
 /** The package snapshot always comes from the database. A price sent by the browser is ignored. */
-async function resolvePackage(slug) {
+async function resolvePackage(slug, settings) {
   if (!slug) throw httpError(400, 'Please choose a package.');
-  if (slug === 'custom') return CUSTOM_PACKAGE;
+  if (slug === 'custom') return customPackage(settings);
   const pkg = await Package.findOne({ slug: slug.toLowerCase(), active: true });
   if (!pkg) throw httpError(400, 'That package is not available. Please choose another.');
   return { packageId: pkg._id, slug: pkg.slug, name: pkg.name, price: pkg.price, duration: pkg.duration, durationHours: pkg.durationHours };
@@ -40,6 +46,11 @@ async function findBooking(id, { withNotes = false } = {}) {
 // ---------------------------------------------------------------- POST /api/bookings  (PUBLIC)
 export const createBooking = asyncHandler(async (req, res) => {
   const b = req.body ?? {};
+  const settings = await getSettings();
+  const rules = settings.booking;
+
+  // Admin → Settings → Booking: online bookings can be switched off (the website shows the message; this is the server-side guard)
+  if (!rules.enabled) throw httpError(403, rules.disabledMessage || 'Online bookings are currently closed.');
 
   // Whitelist: status, adminNotes, bookingId, slotKey can never be set by the public
   const booking = new Booking({
@@ -47,25 +58,36 @@ export const createBooking = asyncHandler(async (req, res) => {
     email: str(b.email),
     phone: str(b.phone),
     shootType: str(b.shootType),
-    location: str(b.location),
+    // not asked for → "not sure yet", which is an existing option, so downstream code never meets a missing location
+    location: str(b.location) || (rules.locationRequired ? undefined : 'undecided'),
     locationDetails: str(b.locationDetails),
     numberOfPeople: num(b.numberOfPeople ?? b.people),
     styles: strArray(b.styles),
-    specialRequest: str(b.specialRequest ?? b.requests),
+    specialRequest: rules.allowNotes ? str(b.specialRequest ?? b.requests) : '',
     budget: str(b.budget),
     // Only the customer can opt in (at booking). It cannot be changed from the admin screen.
     whatsappOptIn: b.whatsappOptIn === true,
     whatsappOptInAt: b.whatsappOptIn === true ? new Date() : undefined,
     date: str(b.date),
     time: str(b.time),
-    package: await resolvePackage(packageSlugFrom(b)),
+    package: await resolvePackage(packageSlugFrom(b), settings),
   });
+  booking.$locals = { optional: { email: !rules.emailRequired, phone: !rules.phoneRequired, location: !rules.locationRequired } };
 
   await booking.validate(); // field-by-field errors (400) before anything else
 
-  if (!isBookableDate(booking.date)) throw httpError(400, 'Please choose a date after today.');
+  // Only ACTIVE services can be booked. The booking keeps the service's name as it is today (renaming it later changes nothing here).
+  const service = await findService(booking.shootType);
+  if (!service) throw fieldError('shootType', 'That service is not available. Please choose another.');
+  booking.shootTypeName = service.name;
+
+  const window = { minAdvanceDays: rules.minAdvanceDays, maxAdvanceDays: rules.maxAdvanceDays };
+  if (!isBookableDate(booking.date, window)) {
+    throw httpError(400, rules.allowSameDay ? 'Please choose today or a later date within the booking window.' : 'Please choose a date after today, within the booking window.');
+  }
   if (!SLOT_TIMES.includes(booking.time)) throw httpError(400, 'Please choose one of the available time slots.');
-  if (!(await isSlotFree(booking.date, booking.time, { durationHours: booking.package.durationHours }))) {
+  // Free of other bookings and blocked dates, inside the working hours for that day, and with the buffer around other shoots
+  if (!(await isSlotFree(booking.date, booking.time, { durationHours: booking.package.durationHours, settings }))) {
     throw httpError(409, 'That time slot is no longer available. Please choose another.');
   }
 
@@ -102,7 +124,7 @@ export const getBookings = asyncHandler(async (req, res) => {
   }
   const shootType = q('shootType');
   if (shootType) {
-    if (!SHOOT_TYPES.includes(shootType)) throw httpError(400, 'Invalid shootType');
+    if (shootType.length > SLUG_MAX || !SLUG_RE.test(shootType)) throw httpError(400, 'Invalid shootType');
     filter.shootType = shootType;
   }
 
@@ -153,15 +175,22 @@ const EDITABLE = [
 export const updateBooking = asyncHandler(async (req, res) => {
   const body = req.body ?? {};
   const booking = await findBooking(req.params.id, { withNotes: true });
-  const before = { status: booking.status, date: booking.date, time: booking.time, hours: booking.package?.durationHours };
+  const before = { status: booking.status, date: booking.date, time: booking.time, hours: booking.package?.durationHours, shootType: booking.shootType };
 
   let touched = false;
   EDITABLE.forEach((key) => {
     if (key in body) { booking[key] = body[key]; touched = true; }
   });
   if ('package' in body || 'packageId' in body) {
-    booking.package = await resolvePackage(packageSlugFrom(body));
+    booking.package = await resolvePackage(packageSlugFrom(body), await getSettings());
     touched = true;
+  }
+  if ('shootType' in body && booking.shootType !== before.shootType) {
+    // the admin may pick any existing service (even one hidden from customers); the booking keeps that service's name
+    const service = await findService(String(body.shootType), { activeOnly: false });
+    if (!service) throw fieldError('shootType', 'That service does not exist.');
+    booking.shootType = service.slug;
+    booking.shootTypeName = service.name;
   }
   if ('durationHours' in body) {
     booking.set('package.durationHours', body.durationHours); // e.g. extend a custom-quote shoot to 4 hours

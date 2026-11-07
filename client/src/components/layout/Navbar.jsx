@@ -3,16 +3,21 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Calendar, Camera, Menu } from 'lucide-react';
 import Button from '../common/Button';
 import MobileMenu from './MobileMenu';
-import { NAV_LINKS, BOOKING_PATH, SITE } from '../../utils/constants';
+import { NAV_LINKS, BOOKING_PATH } from '../../utils/constants';
+import { useSite } from '../../hooks/useSettings';
 import { cx } from '../../utils/helpers';
 
 export function Logo({ onClick }) {
+  const { brand, settings } = useSite();
+  const logo = settings.general.logo?.url;
   return (
-    <Link to="/" className="logo" onClick={onClick} aria-label={`${SITE.name} ${SITE.tagline} – home`}>
-      <Camera size={34} strokeWidth={1.3} aria-hidden="true" />
+    <Link to="/" className="logo" onClick={onClick} aria-label={`${brand.name} ${brand.tagline} – home`.replace(/\s+/g, ' ')}>
+      {logo
+        ? <img className="logo__img" src={logo} alt="" height="34" />
+        : <Camera size={34} strokeWidth={1.3} aria-hidden="true" />}
       <span className="logo__text">
-        <span className="logo__name">{SITE.name}</span>
-        <span className="logo__sub">{SITE.tagline}</span>
+        <span className="logo__name">{brand.name}</span>
+        {brand.tagline && <span className="logo__sub">{brand.tagline}</span>}
       </span>
     </Link>
   );
@@ -22,6 +27,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const { nav, cta } = useSite();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -40,7 +46,7 @@ export default function Navbar() {
           <Logo />
 
           <nav className="navbar__links" aria-label="Primary">
-            {NAV_LINKS.map(({ label, to }) => (
+            {nav(NAV_LINKS).map(({ label, to }) => (
               <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => cx('navbar__link', isActive && 'is-active')}>
                 {label}
               </NavLink>
@@ -48,7 +54,7 @@ export default function Navbar() {
           </nav>
 
           <Button to={BOOKING_PATH} variant="outline" size="sm" className="navbar__cta" icon={<Calendar size={16} />}>
-            Book a shoot
+            {cta}
           </Button>
 
           <button

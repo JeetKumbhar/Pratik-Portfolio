@@ -3,7 +3,7 @@
  * Pure functions, no React. A day can hold several events, e.g. a Wedding booking AND a personal appointment.
  *   June 10 → "Wedding booking"      June 11 → "Editing"      June 12 → (nothing: available)      June 13 → "Vacation"
  */
-export const BLOCK_TYPES = ['editing', 'vacation', 'personal', 'offline_booking', 'other'];
+export const BLOCK_TYPES = ['editing', 'vacation', 'personal', 'offline_booking', 'public_holiday', 'fully_booked', 'other'];
 
 export const EVENT_TYPES = {
   booking: { label: 'Customer booking' },
@@ -11,6 +11,9 @@ export const EVENT_TYPES = {
   vacation: { label: 'Vacation' },
   personal: { label: 'Personal day' },
   offline_booking: { label: 'Offline booking' },
+  public_holiday: { label: 'Public holiday' },
+  fully_booked: { label: 'Fully booked' },
+  day_off: { label: 'Day off (weekly schedule)' },
   other: { label: 'Other' },
 };
 
@@ -18,7 +21,7 @@ export const typeLabel = (type) => EVENT_TYPES[type]?.label ?? type;
 
 /**
  * day = one entry of GET /api/availability/admin/calendar
- * shootLabel = (shootType) => 'Wedding'   (passed in so this file needs no imports)
+ * shootLabel = (shootType, savedName) => 'Wedding'   (passed in so this file needs no imports)
  */
 export function buildEvents(day, shootLabel = (t) => t) {
   const blocks = (day?.blocks ?? []).map((b, i) => ({
@@ -39,7 +42,7 @@ export function buildEvents(day, shootLabel = (t) => t) {
     id: `booking-${b.reference}`,
     kind: 'booking',
     type: 'booking',
-    title: `${shootLabel(b.shootType)} booking`,
+    title: `${shootLabel(b.shootType, b.shootTypeName)} booking`,
     subtitle: b.name,
     reference: b.reference,
     status: b.status,

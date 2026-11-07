@@ -1,14 +1,19 @@
 import { Clock, Mail, MapPin, Phone } from 'lucide-react';
-import { SITE } from '../../utils/constants';
-import { LOCATION } from './contactData';
+import { useSite } from '../../hooks/useSettings';
+import { addressLines, mailHref, phoneHref } from '../../utils/siteSettings';
 
+/** The contact details from Admin → Settings → Business. A detail that is empty is left out: no blank rows. */
 export default function ContactInfo() {
+  const { settings } = useSite();
+  const { email, primaryPhone } = settings.business;
+  const lines = addressLines(settings.business);
+
   const items = [
-    { icon: Mail, label: 'Email', value: SITE.email, href: `mailto:${SITE.email}` },
-    { icon: Phone, label: 'Phone', value: SITE.phone, href: `tel:${SITE.phone.replace(/[^\d+]/g, '')}` },
-    { icon: MapPin, label: 'Location', value: LOCATION.lines.join(', ') },
+    email && { icon: Mail, label: 'Email', value: email, href: mailHref(email) },
+    primaryPhone && { icon: Phone, label: 'Phone', value: primaryPhone, href: phoneHref(primaryPhone) },
+    lines.length > 0 && { icon: MapPin, label: 'Location', value: lines.join(', ') },
     { icon: Clock, label: 'Response time', value: 'Within 24 hours' },
-  ];
+  ].filter(Boolean);
 
   return (
     <ul className="info-list">

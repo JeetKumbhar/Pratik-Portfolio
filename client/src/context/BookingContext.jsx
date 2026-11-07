@@ -1,7 +1,9 @@
 import { createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { getPackages } from '../services/packageService';
 import { submitBooking } from '../services/bookingService';
-import { CUSTOM_PACKAGE, LOCATIONS, SHOOT_TYPES, fromKey } from '../components/booking/bookingData';
+import { CUSTOM_PACKAGE, LOCATIONS, fromKey } from '../components/booking/bookingData';
+import useSettings from '../hooks/useSettings';
+import { todayIn } from '../utils/siteSettings';
 import { validateBooking } from '../utils/validation';
 
 export const BookingContext = createContext(null);
@@ -44,6 +46,7 @@ function reducer(state, action) {
 }
 
 export function BookingProvider({ children }) {
+  const { settings, services } = useSettings();
   const [state, dispatch] = useReducer(reducer, undefined, init);
   const [submission, setSubmission] = useState(null); // { reference } once submitted
   const [packages, setPackages] = useState([]);
@@ -79,20 +82,29 @@ export function BookingProvider({ children }) {
   const back = useCallback(() => goTo(state.step - 1), [goTo, state.step]);
   const reset = useCallback(() => { dispatch({ type: 'RESET' }); setSubmission(null); setNotice([]); setSubmitError(''); }, []);
 
+  // The booking rules from Admin → Settings → Booking (required fields, notice period). The server enforces them again.
+  const { phoneRequired, emailRequired, locationRequired, minAdvanceDays, maxAdvanceDays, customDurationHours } = settings.booking;
+  const timezone = settings.general.timezone;
+  const rules = useMemo(
+    () => ({ phoneRequired, emailRequired, locationRequired, minAdvanceDays, maxAdvanceDays, today: todayIn(timezone) }),
+    [phoneRequired, emailRequired, locationRequired, minAdvanceDays, maxAdvanceDays, timezone]
+  );
+
   const selectedPackage = useMemo(() => {
-    if (state.values.packageId === CUSTOM_PACKAGE.id) return CUSTOM_PACKAGE;
+    if (state.values.packageId === CUSTOM_PACKAGE.id) return { ...CUSTOM_PACKAGE, durationHours: customDurationHours }; // "not sure yet" holds the saved number of hours
     return packages.find((p) => p.id === state.values.packageId) ?? null;
-  }, [packages, state.values.packageId]);
+  }, [packages, state.values.packageId, customDurationHours]);
 
   /** Full check of every step. Used before submit and when a saved draft is restored. */
   const validateAll = useCallback(
     () => validateBooking(state.values, {
-      shootTypes: SHOOT_TYPES.map((s) => s.id),
+      rules,
+      shootTypes: services.map((s) => s.slug),
       locations: LOCATIONS.map((l) => l.id),
       // only check the package id against the list once packages have loaded
       packageIds: packagesStatus === 'ready' ? [...packages.map((p) => p.id), CUSTOM_PACKAGE.id] : undefined,
     }),
-    [state.values, packages, packagesStatus]
+    [state.values, packages, packagesStatus, rules, services]
   );
 
   /**
@@ -138,11 +150,11 @@ export function BookingProvider({ children }) {
       values: state.values, step: state.step, maxStep: state.maxStep,
       update, goTo, next, back, reset,
       packages, packagesStatus, selectedPackage,
-      validateAll, notice,
+      validateAll, notice, rules,
       submit, submitting, submitError,
       submission, setSubmission,
     }),
-    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, validateAll, notice, submit, submitting, submitError, submission]
+    [state, update, goTo, next, back, reset, packages, packagesStatus, selectedPackage, validateAll, notice, rules, submit, submitting, submitError, submission]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

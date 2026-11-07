@@ -164,7 +164,7 @@ export function publicSummary(stats) {
 }
 
 export const publicBooking = (b) => ({
-  id: String(b._id), reference: b.bookingId, shootType: b.shootType, packageName: b.package?.name ?? '', date: b.date, time: b.time,
+  id: String(b._id), reference: b.bookingId, shootType: b.shootType, shootTypeName: b.shootTypeName || '', packageName: b.package?.name ?? '', date: b.date, time: b.time,
   status: b.status, createdAt: b.createdAt,
 });
 
@@ -223,7 +223,7 @@ export function createClientQueries(getDeps) {
     else if (filter === 'cancelled') query.status = 'cancelled';
 
     const sort = filter === 'upcoming' ? { date: 1, time: 1 } : { date: -1, time: -1 };
-    const rows = await models.Booking.find(query).select('bookingId shootType package.name date time status createdAt').sort(sort).limit(MAX_HISTORY).lean();
+    const rows = await models.Booking.find(query).select('bookingId shootType shootTypeName package.name date time status createdAt').sort(sort).limit(MAX_HISTORY).lean();
     return rows.map(publicBooking);
   }
 

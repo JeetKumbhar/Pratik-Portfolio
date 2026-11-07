@@ -34,12 +34,16 @@ const userSchema = new mongoose.Schema(
       enum: { values: ['admin'], message: 'Invalid role' },
       default: 'admin',
     },
+    // "Log out everywhere": every login token carries the number it was issued under. Raising this number makes all older tokens
+    // invalid at once (utils/token.js + middleware/authMiddleware.js). Tokens issued before this field existed count as 0.
+    tokenVersion: { type: Number, default: 0 },
   },
   {
     timestamps: true,
     toJSON: {
       transform(doc, ret) {
         delete ret.password;
+        delete ret.tokenVersion;
         delete ret.__v;
         return ret;
       },

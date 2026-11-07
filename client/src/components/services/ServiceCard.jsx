@@ -3,7 +3,8 @@ import { ArrowRight } from 'lucide-react';
 import { BOOKING_PATH } from '../../utils/constants';
 
 export default function ServiceCard({ service, photo }) {
-  const { id, title, text, icon: Icon, gradient } = service;
+  const { id, title, text, icon: Icon, gradient, coverImage } = service;
+  const image = coverImage || photo?.src || `/images/services/${id}.jpg`; // the cover chosen in Settings, else a featured portfolio photo, else the default file
 
   return (
     <article className="svc-card">
@@ -11,7 +12,7 @@ export default function ServiceCard({ service, photo }) {
         className="svc-card__media"
         role="img"
         aria-label={photo ? photo.alt : `${title} sample photo`}
-        style={{ backgroundImage: `linear-gradient(0deg, rgba(10,10,10,0.85), rgba(10,10,10,0) 60%), url("${photo?.src ?? `/images/services/${id}.jpg`}"), ${gradient}` }}
+        style={{ backgroundImage: `linear-gradient(0deg, rgba(10,10,10,0.85), rgba(10,10,10,0) 60%), url("${image}"), ${gradient}` }}
       />
       <div className="svc-card__body">
         <span className="svc-card__icon"><Icon size={22} strokeWidth={1.4} /></span>

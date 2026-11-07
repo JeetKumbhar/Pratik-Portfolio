@@ -6,12 +6,15 @@
  * .env:  WHATSAPP_ACCESS_TOKEN  WHATSAPP_PHONE_NUMBER_ID  WHATSAPP_API_VERSION  (+ WHATSAPP_BUSINESS_ACCOUNT_ID, used by the setup scripts)
  *        PHOTOGRAPHER_WHATSAPP_NUMBER  WHATSAPP_TEMPLATE_LANGUAGE (default "en")  WHATSAPP_DEFAULT_COUNTRY_CODE (optional)
  */
+import { getRuntimeConfig } from '../utils/runtimeConfig.js';
+
 const env = () => ({
   token: process.env.WHATSAPP_ACCESS_TOKEN,
   phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
   version: process.env.WHATSAPP_API_VERSION,
   language: process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en',
-  defaultCountryCode: process.env.WHATSAPP_DEFAULT_COUNTRY_CODE,
+  // Admin → Settings → General wins; .env is the fallback
+  defaultCountryCode: getRuntimeConfig().countryCode || process.env.WHATSAPP_DEFAULT_COUNTRY_CODE,
 });
 
 const VERSION_RE = /^v\d+\.\d+$/;
@@ -203,4 +206,27 @@ export async function getPhoneNumberInfo() {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new WhatsAppError(explain(data?.error?.code, data?.error?.message, c.token), { code: data?.error?.code ?? res.status, httpStatus: res.status });
   return data;
+}
+
+/**
+ * The approval status of our templates, straight from Meta: [{ name, status, language }] (status APPROVED | PENDING | REJECTED | PAUSED ...).
+ * Needs WHATSAPP_BUSINESS_ACCOUNT_ID. A template that exists here in the code is NOT assumed to be approved: only this answer counts.
+ */
+export async function listTemplateStatuses() {
+  const c = env();
+  if (!isConfigured()) throw new WhatsAppError('WhatsApp is not configured on the server.', { code: 'not_configured' });
+  const waba = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+  if (!waba || !/^\d+$/.test(waba)) throw new WhatsAppError('WHATSAPP_BUSINESS_ACCOUNT_ID is not set on the server, so template approval cannot be checked.', { code: 'no_waba' });
+  let res;
+  try {
+    res = await fetch(`https://graph.facebook.com/${c.version}/${waba}/message_templates?fields=name,status,language&limit=100`, {
+      headers: { Authorization: `Bearer ${c.token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch {
+    throw new WhatsAppError('Could not reach WhatsApp (network problem or timeout).', { code: 'network', retryable: true });
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new WhatsAppError(explain(data?.error?.code, data?.error?.message, c.token), { code: data?.error?.code ?? res.status, httpStatus: res.status });
+  return (data.data ?? []).map((t) => ({ name: String(t.name), status: String(t.status), language: String(t.language) }));
 }

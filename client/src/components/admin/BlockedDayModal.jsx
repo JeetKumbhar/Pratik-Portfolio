@@ -7,7 +7,8 @@ import Select from '../common/Select';
 import Textarea from '../common/Textarea';
 import useAuth from '../../hooks/useAuth';
 import { createBlockedDates } from '../../services/adminService';
-import { formatDate, formatTime, fromKey, toKey } from '../booking/bookingData';
+import { fromKey, toKey } from '../booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 import { BLOCK_TYPES, EVENT_TYPES } from '../../utils/calendarEvents';
 import { cx } from '../../utils/helpers';
 
@@ -24,6 +25,7 @@ const blank = (date, todayKey) => ({ type: 'editing', start: date || todayKey, e
  */
 export default function BlockedDayModal({ isOpen, onClose, initialDate = '', onDone }) {
   const { token } = useAuth();
+  const { formatDate, formatTime } = useFormatters();
   const todayKey = toKey(new Date());
   const [form, setForm] = useState(() => blank(initialDate, todayKey));
   const [errors, setErrors] = useState({});

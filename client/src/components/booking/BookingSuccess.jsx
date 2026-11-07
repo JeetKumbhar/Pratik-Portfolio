@@ -1,10 +1,12 @@
 import { CheckCircle2 } from 'lucide-react';
 import Button from '../common/Button';
 import useBooking from '../../hooks/useBooking';
-import { SHOOT_TYPES, formatDate, formatTime, labelOf } from './bookingData';
+import useSettings, { useFormatters } from '../../hooks/useSettings';
 
 export default function BookingSuccess() {
   const { submission, reset } = useBooking();
+  const { settings } = useSettings();
+  const { formatDate, formatTime, serviceLabel } = useFormatters();
   const { reference, name, email, date, time, shootType } = submission;
 
   return (
@@ -13,12 +15,15 @@ export default function BookingSuccess() {
       <p className="success__eyebrow">Request sent</p>
       <h1 className="success__title">Thank you{name ? `, ${name.trim().split(' ')[0]}` : ''}!</h1>
       <p className="success__text">
-        I'll review your request and get back to you at <strong>{email}</strong> within 24 hours to confirm availability.
+        {email
+          ? <>I'll review your request and get back to you at <strong>{email}</strong> within 24 hours to confirm availability.</>
+          : <>I'll review your request and get back to you on the phone number you gave within 24 hours to confirm availability.</>}
       </p>
+      {settings.booking.confirmationMessage && <p className="success__text success__custom">{settings.booking.confirmationMessage}</p>}
 
       <dl className="success__card">
         <div><dt>Reference</dt><dd className="success__ref">{reference}</dd></div>
-        <div><dt>Shoot</dt><dd>{labelOf(SHOOT_TYPES, shootType)}</dd></div>
+        <div><dt>Shoot</dt><dd>{serviceLabel(shootType)}</dd></div>
         <div><dt>Requested slot</dt><dd>{formatDate(date)} at {formatTime(time)}</dd></div>
       </dl>
 

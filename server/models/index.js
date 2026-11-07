@@ -11,3 +11,5 @@ export { default as WhatsAppConversation } from './WhatsAppConversation.js';
 export { default as WhatsAppMessage } from './WhatsAppMessage.js';
 export { default as Client } from './Client.js';
 export { default as ClientNote } from './ClientNote.js';
+export { default as Setting } from './Setting.js';
+export { default as Service } from './Service.js';

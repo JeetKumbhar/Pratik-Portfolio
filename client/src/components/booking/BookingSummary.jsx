@@ -1,13 +1,15 @@
 import useBooking from '../../hooks/useBooking';
-import { LOCATIONS, SHOOT_TYPES, TRUST, formatDate, formatTime, labelOf, money } from './bookingData';
+import { LOCATIONS, TRUST, labelOf } from './bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 
 /** Right-hand column: photo, live summary (desktop), trust badges. */
 export default function BookingSummary() {
   const { values, selectedPackage } = useBooking();
+  const { money, formatDate, formatTime, serviceLabel } = useFormatters();
   const { shootType, location, date, time, people, styles } = values;
 
   const rows = [
-    ['Shoot type', labelOf(SHOOT_TYPES, shootType)],
+    ['Shoot type', shootType ? serviceLabel(shootType) : ''],
     ['Location', labelOf(LOCATIONS, location)],
     ['Date', formatDate(date)],
     ['Time', formatTime(time)],

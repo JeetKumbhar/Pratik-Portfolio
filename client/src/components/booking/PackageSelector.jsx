@@ -3,10 +3,12 @@ import Badge from '../common/Badge';
 import Loader from '../common/Loader';
 import useBooking from '../../hooks/useBooking';
 import { cx } from '../../utils/helpers';
-import { CUSTOM_PACKAGE, money } from './bookingData';
+import { CUSTOM_PACKAGE } from './bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 
 export default function PackageSelector({ error }) {
   const { values, update, packages, packagesStatus } = useBooking();
+  const { money } = useFormatters();
   const options = [...packages, CUSTOM_PACKAGE];
 
   if (packagesStatus === 'loading') return <Loader label="Loading packages" />;

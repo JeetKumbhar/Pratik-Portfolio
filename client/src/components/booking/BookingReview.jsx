@@ -1,15 +1,17 @@
 import { AlertCircle, ArrowLeft, CalendarDays, Camera, ClipboardList, Info, Lock, MapPin, Palette, Pencil, Send, Tag, User, Users } from 'lucide-react';
 import Button from '../common/Button';
 import useBooking from '../../hooks/useBooking';
-import { LOCATIONS, SHOOT_TYPES, formatDate, formatTime, labelOf, money } from './bookingData';
+import { LOCATIONS, labelOf } from './bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 
 export default function BookingReview() {
   const { values, goTo, back, selectedPackage, submit, submitting, submitError } = useBooking();
+  const { money, formatDate, formatTime, serviceLabel } = useFormatters();
 
   const rows = [
-    { icon: User, label: 'Details', step: 1, main: values.name, sub: `${values.email} · ${values.phone}${values.whatsappOptIn ? ' · WhatsApp updates on' : ''}` },
-    { icon: Camera, label: 'Shoot type', step: 2, main: labelOf(SHOOT_TYPES, values.shootType) },
-    { icon: MapPin, label: 'Location', step: 2, main: labelOf(LOCATIONS, values.location), sub: values.locationDetails },
+    { icon: User, label: 'Details', step: 1, main: values.name, sub: [values.email, values.phone].filter(Boolean).join(' · ') + (values.whatsappOptIn ? ' · WhatsApp updates on' : '') },
+    { icon: Camera, label: 'Shoot type', step: 2, main: serviceLabel(values.shootType) },
+    { icon: MapPin, label: 'Location', step: 2, main: labelOf(LOCATIONS, values.location) || 'Not sure yet', sub: values.locationDetails },
     { icon: CalendarDays, label: 'Date & time', step: 3, main: `${formatDate(values.date)} at ${formatTime(values.time)}`, sub: selectedPackage ? `Duration: ${selectedPackage.duration}` : '' },
     { icon: Users, label: 'People', step: 2, main: values.people },
     { icon: Palette, label: 'Style & mood', step: 2, main: values.styles.join(', ') || 'No preference' },

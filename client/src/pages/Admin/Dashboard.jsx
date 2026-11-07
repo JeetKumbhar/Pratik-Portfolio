@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { CalendarCheck, CalendarClock, Clock, RefreshCw, Wallet, AlertCircle } from 'lucide-react';
@@ -7,7 +8,7 @@ import RecentBookings from '../../components/admin/RecentBookings';
 import AdminCalendar from '../../components/admin/AdminCalendar';
 import QuickActions from '../../components/admin/QuickActions';
 import NotificationPanel from '../../components/admin/NotificationPanel';
-import { formatDate, formatTime, money } from '../../components/booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import { getBookingStats, getRecentBookings } from '../../services/adminService';
@@ -18,6 +19,7 @@ import { getBookingStats, getRecentBookings } from '../../services/adminService'
  */
 export default function Dashboard() {
   const { token, user } = useAuth();
+  const { money, formatDate, formatTime } = useFormatters();
   const { unreadMessages = 0 } = useOutletContext() ?? {}; // counted once, in AdminLayout
   const stats = useFetch(() => getBookingStats(token), [token]);
   const recent = useFetch(() => getRecentBookings(token, 6), [token]);

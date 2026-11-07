@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import BookingTable from '../../components/admin/BookingTable';
 import BookingDetails from '../../components/admin/BookingDetails';
-import { SHOOT_TYPES } from '../../components/booking/bookingData';
+import useAdminServices from '../../hooks/useAdminServices';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useDebounce from '../../hooks/useDebounce';
@@ -25,10 +25,11 @@ const TABS = [{ value: '', label: 'All', stat: 'total' }, ...STATUSES.map((s) =>
  */
 export default function Bookings() {
   const { token } = useAuth();
+  const { options: serviceOptions } = useAdminServices();
   const [params, setParams] = useSearchParams();
 
   const status = STATUSES.includes(params.get('status')) ? params.get('status') : '';
-  const type = SHOOT_TYPES.some((t) => t.id === params.get('type')) ? params.get('type') : '';
+  const type = /^[a-z0-9-]{1,40}$/.test(params.get('type') ?? '') ? params.get('type') : ''; // a service id; the server checks it too
   const sort = SORTS.some((s) => s.value === params.get('sort')) ? params.get('sort') : '-createdAt';
   const search = params.get('search') ?? '';
   const page = Math.max(1, parseInt(params.get('page'), 10) || 1);
@@ -85,7 +86,7 @@ export default function Bookings() {
         </label>
         <select className="bk-select" value={type} onChange={(e) => changeParams({ type: e.target.value })} aria-label="Filter by shoot type">
           <option value="">All shoot types</option>
-          {SHOOT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          {serviceOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <select className="bk-select" value={sort} onChange={(e) => changeParams({ sort: e.target.value })} aria-label="Sort bookings">
           {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}

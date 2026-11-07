@@ -7,7 +7,8 @@ import StepNav from './StepNav';
 import useBooking from '../../hooks/useBooking';
 import { cx } from '../../utils/helpers';
 import { validatePreferences } from './bookingValidation';
-import { LOCATIONS, MAX_PEOPLE, MAX_STYLES, REQUESTS_MAX, SHOOT_TYPES, STYLES } from './bookingData';
+import { LOCATIONS, MAX_PEOPLE, MAX_STYLES, REQUESTS_MAX, STYLES, shootTypesFrom } from './bookingData';
+import useSettings from '../../hooks/useSettings';
 
 function Block({ title, hint, error, children }) {
   return (
@@ -21,7 +22,9 @@ function Block({ title, hint, error, children }) {
 }
 
 export default function ShootPreferences() {
-  const { values, update, next } = useBooking();
+  const { values, update, next, rules } = useBooking();
+  const { services, settings } = useSettings();
+  const shootTypes = shootTypesFrom(services);
   const [errors, setErrors] = useState({});
 
   const clear = (field) => errors[field] && setErrors((e) => ({ ...e, [field]: undefined }));
@@ -35,7 +38,7 @@ export default function ShootPreferences() {
   };
 
   const onNext = () => {
-    const found = validatePreferences(values);
+    const found = validatePreferences(values, { rules });
     setErrors(found);
     if (Object.keys(found).length) {
       document.querySelector('.block--error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -49,7 +52,7 @@ export default function ShootPreferences() {
       <div className={cx(errors.shootType && 'block--error')}>
         <Block title="Shoot type" hint="What type of shoot are you looking to book?" error={errors.shootType}>
           <div className="tiles tiles--3" role="radiogroup" aria-label="Shoot type">
-            {SHOOT_TYPES.map(({ id, label, text, icon: Icon }) => (
+            {shootTypes.map(({ id, label, text, icon: Icon }) => (
               <button key={id} type="button" role="radio" aria-checked={values.shootType === id}
                 className={cx('tile', values.shootType === id && 'is-selected')} onClick={() => pick('shootType', id)}>
                 <Icon size={26} strokeWidth={1.3} />
@@ -63,7 +66,7 @@ export default function ShootPreferences() {
       </div>
 
       <div className={cx(errors.location && 'block--error')}>
-        <Block title="Location preference" hint="Where would you like your shoot to take place?" error={errors.location}>
+        <Block title={rules.locationRequired === false ? 'Location preference (optional)' : 'Location preference'} hint="Where would you like your shoot to take place?" error={errors.location}>
           <div className="tiles tiles--4" role="radiogroup" aria-label="Location">
             {LOCATIONS.map(({ id, label, text, icon: Icon }) => (
               <button key={id} type="button" role="radio" aria-checked={values.location === id}
@@ -100,8 +103,10 @@ export default function ShootPreferences() {
         </Block>
       </div>
 
-      <Textarea id="book-requests" label="Any special requests?" maxLength={REQUESTS_MAX}
-        placeholder="Share your ideas, inspiration, must-have shots…" value={values.requests} onChange={(e) => update({ requests: e.target.value })} />
+      {settings.booking.allowNotes && (
+        <Textarea id="book-requests" label="Any special requests?" maxLength={REQUESTS_MAX}
+          placeholder="Share your ideas, inspiration, must-have shots…" value={values.requests} onChange={(e) => update({ requests: e.target.value })} />
+      )}
 
       <div className={cx(errors.packageId && 'block--error')}>
         <Block title="Package" hint="Pick the package that fits best. You can change this later." >

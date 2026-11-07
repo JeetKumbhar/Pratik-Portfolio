@@ -10,7 +10,10 @@ export const STEPS = [
   { id: 4, label: 'Review' },
 ];
 
-/** ids match the Services page links: /booking?service=wedding */
+/**
+ * The built-in starting list. The real list is Admin → Settings → Services (use useServices() / shootTypesFrom()); this one is
+ * the icons for the well-known ids, and what shows if the server cannot be reached. ids match: /booking?service=wedding
+ */
 export const SHOOT_TYPES = [
   { id: 'wedding', label: 'Weddings', text: 'Ceremony and celebration', icon: Heart },
   { id: 'pre-wedding', label: 'Pre-weddings', text: 'Couple sessions', icon: Sparkles },
@@ -19,6 +22,10 @@ export const SHOOT_TYPES = [
   { id: 'events', label: 'Events', text: 'Parties, corporate events, occasions', icon: CalendarDays },
   { id: 'commercial', label: 'Commercial', text: 'Brands, products, campaigns', icon: Briefcase },
 ];
+
+const ICONS = Object.fromEntries(SHOOT_TYPES.map((s) => [s.id, s.icon]));
+/** The services from Settings as tiles for the booking form. A service added later gets the camera icon. */
+export const shootTypesFrom = (services) => services.map((s) => ({ id: s.slug, label: s.name, text: s.description, icon: ICONS[s.slug] ?? Camera }));
 
 export const LOCATIONS = [
   { id: 'studio', label: 'Studio', text: 'At my studio', icon: Building2 },

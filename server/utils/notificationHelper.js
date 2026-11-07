@@ -54,6 +54,12 @@ export function createNotifier(getDeps, logger = console) {
   async function dispatch(event, refType, record) {
     try {
       const deps = await getDeps();
+      // Admin → Settings → Notifications: the admin can switch each message off. Nothing is logged and no dedupe key is used up,
+      // so switching it back on later does not resend old events. (Without a settings dependency, as in tests, everything is on.)
+      if (deps.settings && !(await deps.settings.isEventEnabled(event).catch(() => true))) {
+        logger.info(`[whatsapp] ${event} skipped: switched off in Settings`);
+        return { status: 'disabled' };
+      }
       if (!deps.wa.isConfigured()) return { status: 'not_configured' };
 
       const target = await resolveRecipient(deps, event, record);
@@ -136,7 +142,7 @@ export function createNotifier(getDeps, logger = console) {
 // ---------------------------------------------------------------------- the real thing (database + WhatsApp, loaded on first use)
 let deps;
 const realDeps = async () => {
-  deps ??= { models: await import('../models/index.js'), wa: await import('../services/whatsappService.js') };
+  deps ??= { models: await import('../models/index.js'), wa: await import('../services/whatsappService.js'), settings: await import('./settings.js') };
   return deps;
 };
 const notifier = createNotifier(realDeps);

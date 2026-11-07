@@ -14,7 +14,7 @@ const fmtTime = (t) => {
 
 const summary = (b) => [
   `Reference: ${b.bookingId}`,
-  `Shoot: ${b.shootType}`,
+  `Shoot: ${b.shootTypeName || b.shootType}`,
   `Date: ${fmtDate(b.date)} at ${fmtTime(b.time)}`,
   `Location: ${b.location}${b.locationDetails ? ` (${oneLine(b.locationDetails)})` : ''}`,
   `People: ${b.numberOfPeople}`,
@@ -30,19 +30,20 @@ const logFailures = (results) => results.forEach((r) => {
 /** New request: confirmation to the customer + heads-up to the photographer. Never throws. */
 export function sendBookingReceived(b) {
   const first = oneLine(b.name).split(' ')[0];
-  const jobs = [
-    sendEmail({
+  const jobs = [];
+  if (b.email) { // the email field can be optional in Admin → Settings → Booking
+    jobs.push(sendEmail({
       to: b.email,
       subject: `We received your booking request (${b.bookingId})`,
       text: `Hi ${first},\n\nThanks for your request! I'll review the details and get back to you within 24 hours to confirm availability.\n\n${summary(b)}\n\nAlex Morgan Photography`,
-    }),
-  ];
+    }));
+  }
   const admin = adminAddress();
   if (admin) {
     jobs.push(sendEmail({
       to: admin,
       subject: `New booking request ${b.bookingId}: ${oneLine(b.name)}`,
-      text: `${summary(b)}\n\nCustomer: ${oneLine(b.name)}\nEmail: ${b.email}\nPhone: ${oneLine(b.phone)}\nSpecial request: ${oneLine(b.specialRequest) || '-'}`,
+      text: `${summary(b)}\n\nCustomer: ${oneLine(b.name)}\nEmail: ${b.email || '-'}\nPhone: ${oneLine(b.phone) || '-'}\nSpecial request: ${oneLine(b.specialRequest) || '-'}`,
     }));
   }
   return Promise.allSettled(jobs).then(logFailures);
@@ -50,6 +51,7 @@ export function sendBookingReceived(b) {
 
 /** Admin confirmed or cancelled a booking → tell the customer. Other statuses send nothing. */
 export function sendStatusEmail(b) {
+  if (!b.email) return Promise.resolve();
   const first = oneLine(b.name).split(' ')[0];
   let subject;
   let text;

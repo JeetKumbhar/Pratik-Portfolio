@@ -16,12 +16,19 @@
  * A number that is too short to place (7 to 9 digits, no "+") is refused (null): guessing could attach a booking to the
  * wrong person, which is worse than leaving it unlinked.
  */
+import { getRuntimeConfig } from './runtimeConfig.js';
+
 const E164_RE = /^[1-9]\d{7,14}$/;
 const TYPED_RE = /^\+?[\d\s().-]+$/;
 const NATIONAL_LENGTH = 10;
 
-/** The country code used when a number is typed without one. Digits only, 1 to 3 long. */
+/**
+ * The country code used when a number is typed without one. Digits only, 1 to 3 long.
+ * Admin → Settings → General wins (kept in runtimeConfig); .env is the fallback; then 91.
+ */
 export function defaultCountryCode(env = process.env) {
+  const saved = env === process.env ? getRuntimeConfig().countryCode : null;
+  if (saved) return saved;
   const cc = String(env.CLIENT_DEFAULT_COUNTRY_CODE ?? env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? '91').replace(/\D/g, '');
   return /^[1-9]\d{0,2}$/.test(cc) ? cc : '91';
 }

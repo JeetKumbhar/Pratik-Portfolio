@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { PACKAGE_CATEGORIES, MAX_DURATION_HOURS } from '../config/constants.js';
+import { MAX_DURATION_HOURS, SLUG_MAX, SLUG_RE } from '../config/constants.js';
 import { parseDurationHours } from '../utils/duration.js';
 
 const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -29,7 +29,8 @@ const packageSchema = new mongoose.Schema(
     slug: { type: String, unique: true, lowercase: true, trim: true, immutable: true },
     category: {
       type: String,
-      enum: { values: PACKAGE_CATEGORIES, message: 'Invalid category' },
+      trim: true,
+      validate: { validator: (v) => v === 'general' || (v.length <= SLUG_MAX && SLUG_RE.test(v)), message: 'Invalid category' }, // 'general' or a service id
       default: 'general',
     },
     price: {

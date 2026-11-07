@@ -5,7 +5,8 @@ import Button from '../../components/common/Button';
 import EmptyState from '../../components/common/EmptyState';
 import MessageDetails from '../../components/admin/MessageDetails';
 import WhatsAppInbox from '../../components/admin/WhatsAppInbox';
-import { SUBJECT_OPTIONS } from '../../components/contact/contactData';
+import { subjectLabelOptions } from '../../components/contact/contactData';
+import useAdminServices from '../../hooks/useAdminServices';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useDebounce from '../../hooks/useDebounce';
@@ -54,6 +55,7 @@ export default function Messages() {
  */
 function ContactMessages() {
   const { token } = useAuth();
+  const { services } = useAdminServices();
   const { refreshUnread } = useOutletContext() ?? {}; // keeps the sidebar badge in step
   const [params, setParams] = useSearchParams();
 
@@ -165,7 +167,7 @@ function ContactMessages() {
                 <button type="button" className={cx('msg-row', m.status === 'new' && 'is-unread', selected?.id === m.id && 'is-active')} onClick={() => open(m)}
                   aria-label={`${m.status === 'new' ? 'Unread message' : 'Message'} from ${m.name}`}>
                   <span className="msg-dot" aria-hidden="true" />
-                  <span className="msg-row__who"><strong>{m.name}</strong><small>{subjectLabel(m.subject, SUBJECT_OPTIONS)}</small></span>
+                  <span className="msg-row__who"><strong>{m.name}</strong><small>{subjectLabel(m.subject, subjectLabelOptions(services))}</small></span>
                   <span className="msg-row__text">{previewText(m.message)}</span>
                   <span className="msg-row__time">{timeAgo(m.createdAt)}</span>
                   <ChevronRight size={18} className="msg-row__chevron" aria-hidden="true" />

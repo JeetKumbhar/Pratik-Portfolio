@@ -4,6 +4,9 @@
 .ev--editing { --ev: #a98bf0; --ev-soft: rgba(169, 139, 240, 0.16); }
 .ev--vacation { --ev: #4fc3a1; --ev-soft: rgba(79, 195, 161, 0.16); }
 .ev--personal { --ev: #f08bb4; --ev-soft: rgba(240, 139, 180, 0.16); }
+.ev--public_holiday { --ev: #e58bb0; --ev-soft: rgba(229, 139, 176, 0.16); }
+.ev--fully_booked { --ev: #e5645a; --ev-soft: rgba(229, 100, 90, 0.16); }
+.ev--day_off { --ev: #8d8a83; --ev-soft: rgba(141, 138, 131, 0.14); }
 .ev--offline_booking { --ev: #6ea8f0; --ev-soft: rgba(110, 168, 240, 0.16); }
 .ev--other { --ev: #8f9aa8; --ev-soft: rgba(143, 154, 168, 0.16); }
 

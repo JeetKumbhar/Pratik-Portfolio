@@ -2,12 +2,10 @@ import { CalendarX, ChevronRight, CloudOff } from 'lucide-react';
 import Badge from '../../common/Badge';
 import Button from '../../common/Button';
 import EmptyState from '../../common/EmptyState';
-import { SHOOT_TYPES, formatTime, fromKey, labelOf } from '../../booking/bookingData';
+import { useFormatters } from '../../../hooks/useSettings';
 import { STATUS_META } from '../../../utils/bookingStatus';
 import { BOOKING_FILTERS, shortDate } from '../../../utils/clientUtils';
 import { cx } from '../../../utils/helpers';
-
-const shootDate = (key) => (key ? fromKey(key).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
 /**
  * Section B: booking history. Clicking a row opens the existing booking details drawer (the profile page renders it).
@@ -15,6 +13,7 @@ const shootDate = (key) => (key ? fromKey(key).toLocaleDateString('en-IN', { day
  */
 export default function ClientBookings({ bookings, counts, filter, onFilter, loading, error, onRetry, onOpen }) {
   const rows = bookings ?? [];
+  const { formatDate, formatTime, serviceLabel } = useFormatters();
   return (
     <section className="panel cl-section" aria-labelledby="cl-bookings-title" aria-busy={loading}>
       <div className="panel__head">
@@ -52,8 +51,8 @@ export default function ClientBookings({ bookings, counts, filter, onFilter, loa
                 <li key={b.reference}>
                   <button type="button" className="cl-bk-row" onClick={() => onOpen(b.reference)} aria-label={`Open booking ${b.reference}`}>
                     <span className="cl-cell cl-cell--ref"><strong>{b.reference}</strong></span>
-                    <span className="cl-cell"><span>{labelOf(SHOOT_TYPES, b.shootType) || b.shootType}</span>{b.packageName && <small>{b.packageName}</small>}</span>
-                    <span className="cl-cell"><span>{shootDate(b.date)}</span></span>
+                    <span className="cl-cell"><span>{serviceLabel(b.shootType, b.shootTypeName)}</span>{b.packageName && <small>{b.packageName}</small>}</span>
+                    <span className="cl-cell"><span>{formatDate(b.date)}</span></span>
                     <span className="cl-cell"><span>{formatTime(b.time)}</span></span>
                     <span className="cl-cell cl-cell--status"><Badge variant={meta.variant}>{meta.label}</Badge></span>
                     <span className="cl-cell cl-cell--created"><small>Requested {shortDate(b.createdAt)}</small></span>

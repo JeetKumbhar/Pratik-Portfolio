@@ -5,17 +5,19 @@ import Button from '../../components/common/Button';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import EmptyState from '../../components/common/EmptyState';
 import PackageFormModal from '../../components/admin/PackageFormModal';
-import { SHOOT_TYPES, labelOf, money } from '../../components/booking/bookingData';
+import useAdminServices from '../../hooks/useAdminServices';
+import { useFormatters } from '../../hooks/useSettings';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import { deletePackage, getPackagesAdmin, updatePackage } from '../../services/adminService';
 import { cx } from '../../utils/helpers';
 
-const categoryName = (c) => (c === 'general' || !c ? 'All shoots' : labelOf(SHOOT_TYPES, c) || c);
-
 /** Admin → Packages. Create · edit · change price and features · activate / deactivate · delete. Changes go live on the Services page straight away. */
 export default function Packages() {
   const { token } = useAuth();
+  const { money } = useFormatters();
+  const { services } = useAdminServices();
+  const categoryName = (c) => (c === 'general' || !c ? 'All shoots' : services.find((s) => s.slug === c)?.name || c);
   const list = useFetch(() => getPackagesAdmin(token), [token]);
   const [status, setStatus] = useState(''); // '' | 'active' | 'hidden'
   const [modal, setModal] = useState({ open: false, pkg: null });

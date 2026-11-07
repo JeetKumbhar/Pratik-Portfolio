@@ -7,8 +7,10 @@ import Loader from '../common/Loader';
 import Button from '../common/Button';
 import PricingCard from './PricingCard';
 import { getPackages } from '../../services/packageService';
+import { useSite } from '../../hooks/useSettings';
 
 export default function PricingSection() {
+  const { contactEnabled } = useSite();
   const [packages, setPackages] = useState([]);
   const [status, setStatus] = useState('loading'); // loading | ready | error
 
@@ -49,7 +51,7 @@ export default function PricingSection() {
           <EmptyState
             title="Pricing is being updated"
             message="Packages will be back shortly. In the meantime, get in touch for a custom quote."
-            action={<Button to="/contact">Get a quote</Button>}
+            action={contactEnabled ? <Button to="/contact">Get a quote</Button> : undefined}
           />
         )}
 

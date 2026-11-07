@@ -6,10 +6,9 @@ import Select from '../common/Select';
 import Textarea from '../common/Textarea';
 import useAuth from '../../hooks/useAuth';
 import { createPackage, updatePackage } from '../../services/adminService';
-import { SHOOT_TYPES } from '../booking/bookingData';
+import useAdminServices from '../../hooks/useAdminServices';
 import { MAX_FEATURES, featuresToText, guessHours, toPayload, validatePackageForm } from '../../utils/packageForm';
 
-const CATEGORY_OPTIONS = [{ value: 'general', label: 'All kinds of shoot (general)' }, ...SHOOT_TYPES.map((t) => ({ value: t.id, label: t.label }))];
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `${i + 1} hour${i === 0 ? '' : 's'}` }));
 
 const blank = () => ({ name: '', price: '', duration: '', durationHours: '2', category: 'general', description: '', featuresText: '', sortOrder: '', popular: false, active: true });
@@ -24,6 +23,8 @@ const fromPackage = (p) => ({
  */
 export default function PackageFormModal({ isOpen, pkg, onClose, onSaved }) {
   const { token } = useAuth();
+  const { options: serviceOptions } = useAdminServices();
+  const categoryOptions = [{ value: 'general', label: 'All kinds of shoot (general)' }, ...serviceOptions];
   const editing = Boolean(pkg);
   const hoursTouched = useRef(false);
 
@@ -93,7 +94,7 @@ export default function PackageFormModal({ isOpen, pkg, onClose, onSaved }) {
           <Select id="pk-hours" label="Hours you are busy" options={HOUR_OPTIONS} value={form.durationHours}
             onChange={(e) => { hoursTouched.current = true; set({ durationHours: e.target.value }); }} error={errors.durationHours}
             hint="Customers can only book start times where this many hours in a row are free." />
-          <Select id="pk-category" label="Offered for" options={CATEGORY_OPTIONS} value={form.category} onChange={(e) => set({ category: e.target.value })} error={errors.category} />
+          <Select id="pk-category" label="Offered for" options={categoryOptions} value={form.category} onChange={(e) => set({ category: e.target.value })} error={errors.category} />
         </div>
 
         <Input id="pk-description" label="Short description (optional)" maxLength={200} placeholder="e.g. Great for couples & small events" value={form.description} onChange={(e) => set({ description: e.target.value })} error={errors.description} />

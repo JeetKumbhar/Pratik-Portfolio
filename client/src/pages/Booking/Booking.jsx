@@ -10,7 +10,10 @@ import DateTimePicker from '../../components/booking/DateTimePicker';
 import BookingReview from '../../components/booking/BookingReview';
 import BookingSuccess from '../../components/booking/BookingSuccess';
 import BookingSummary from '../../components/booking/BookingSummary';
-import { SHOOT_TYPES, STEPS } from '../../components/booking/bookingData';
+import Loader from '../../components/common/Loader';
+import Button from '../../components/common/Button';
+import useSettings, { useSite } from '../../hooks/useSettings';
+import { STEPS } from '../../components/booking/bookingData';
 
 const HEADERS = {
   1: { eyebrow: 'Book a shoot', title: "Let's create something amazing.", text: "Ready to capture your special moments? Fill out the form below and I'll get back to you within 24 hours." },
@@ -21,6 +24,7 @@ const HEADERS = {
 
 function BookingFlow() {
   const { step, back, update, submission, goTo, validateAll, notice } = useBooking();
+  const { services } = useSettings();
   const [params] = useSearchParams();
 
   // Pre-fill from Services page links: /booking?service=wedding&package=standard
@@ -28,10 +32,10 @@ function BookingFlow() {
     const service = params.get('service');
     const pkg = params.get('package');
     const patch = {};
-    if (service && SHOOT_TYPES.some((s) => s.id === service)) patch.shootType = service;
+    if (service && services.some((s) => s.slug === service)) patch.shootType = service;
     if (pkg) patch.packageId = pkg;
     if (Object.keys(patch).length) update(patch);
-  }, [params, update]);
+  }, [params, update, services]);
 
   // Guard: if a later step is open (e.g. restored draft) but an earlier one is incomplete, go back to it
   useEffect(() => {
@@ -92,7 +96,30 @@ function BookingFlow() {
   );
 }
 
+/** Bookings switched off in Admin → Settings → Booking: show the photographer's message instead of the form. */
+function BookingClosed({ message, contactEnabled }) {
+  return (
+    <section className="home-section">
+      <div className="container">
+        <div className="success" role="status">
+          <p className="success__eyebrow">Bookings</p>
+          <h1 className="success__title">Bookings are paused</h1>
+          <p className="success__text">{message}</p>
+          <div className="success__actions">
+            <Button to="/" size="lg">Back to home</Button>
+            {contactEnabled && <Button to="/contact" variant="ghost" size="lg">Contact me</Button>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Booking() {
+  const { settings, loaded } = useSettings();
+  const { contactEnabled } = useSite();
+  if (!loaded) return <div className="container" style={{ padding: '120px 0' }}><Loader label="Loading" /></div>;
+  if (!settings.booking.enabled) return <BookingClosed message={settings.booking.disabledMessage} contactEnabled={contactEnabled} />;
   return (
     <BookingProvider>
       <BookingFlow />

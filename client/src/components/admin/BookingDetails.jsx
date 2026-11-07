@@ -8,7 +8,8 @@ import ConfirmModal from '../common/ConfirmModal';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import { deleteBooking, getBooking, updateBooking } from '../../services/adminService';
-import { LOCATIONS, SHOOT_TYPES, formatDate, formatTime, labelOf, money } from '../booking/bookingData';
+import { LOCATIONS, labelOf } from '../booking/bookingData';
+import { useFormatters } from '../../hooks/useSettings';
 import { STATUS_META, actionsFor, isFutureShoot } from '../../utils/bookingStatus';
 
 const ICONS = { confirmed: Check, completed: CheckCheck, cancelled: Ban, pending: RotateCcw };
@@ -25,6 +26,7 @@ function Row({ label, children }) {
  */
 export default function BookingDetails({ reference, onClose, onChanged, onDeleted }) {
   const { token } = useAuth();
+  const { money, formatDate, formatTime, serviceLabel } = useFormatters();
   const { data, loading, error, reload } = useFetch(() => getBooking(token, reference), [token, reference]);
   const [booking, setBooking] = useState(null);
   const [notes, setNotes] = useState('');
@@ -89,7 +91,7 @@ export default function BookingDetails({ reference, onClose, onChanged, onDelete
   };
 
   const meta = b ? STATUS_META[b.status] : null;
-  const shoot = b ? labelOf(SHOOT_TYPES, b.shootType) || b.shootType : '';
+  const shoot = b ? serviceLabel(b.shootType, b.shootTypeName) : '';
   const notesChanged = b ? notes !== (b.adminNotes ?? '') : false;
 
   let dialog = { title: '', message: '', confirmText: '' };
