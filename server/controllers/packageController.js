@@ -4,6 +4,7 @@ import { httpError } from '../utils/httpError.js';
 import { Booking } from '../models/index.js';
 import { cleanFeatures, isReservedName } from '../utils/packageInput.js';
 import { SLUG_MAX, SLUG_RE } from '../config/constants.js';
+import { findService } from '../utils/services.js';
 
 // @route GET /api/packages                    (public)  every active package
 // @route GET /api/packages?category=wedding   (public)  active packages for that shoot type + the "general" ones
@@ -48,10 +49,20 @@ export const getAdminPackages = asyncHandler(async (req, res) => {
   res.json({ success: true, count: packages.length, usage, data: packages });
 });
 
+// A package belongs to "general" or to a service the photographer offers (services are managed in Admin → Settings, so the list is read live).
+// A made-up category is refused, as before services became editable. An empty/absent category keeps the model's default.
+async function assertKnownCategory(category) {
+  if (typeof category !== 'string' || !category || category === 'general') return;
+  if (!(await findService(category, { activeOnly: false }))) {
+    throw Object.assign(httpError(400, 'Validation failed'), { fieldErrors: { category: 'Choose "general" or one of your services.' } });
+  }
+}
+
 // POST /api/packages   { name, price, duration, durationHours, features[], description?, category?, popular?, active?, sortOrder? }
 export const createPackage = asyncHandler(async (req, res) => {
   const b = req.body ?? {};
   if (str(b.name) && isReservedName(b.name)) throw reservedError(b.name);
+  await assertKnownCategory(b.category);
 
   // new packages go to the end of the list unless an order is given
   let sortOrder = num(b.sortOrder);
@@ -101,6 +112,7 @@ export const updatePackage = asyncHandler(async (req, res) => {
       pkg[key] = body[key];
     }
   });
+  if ('category' in body && body.category !== pkg.category) await assertKnownCategory(body.category); // an unchanged (possibly legacy) category is not re-checked
   if (!touched) throw httpError(400, `Nothing to update. You can change: ${EDITABLE.join(', ')}.`);
 
   try {

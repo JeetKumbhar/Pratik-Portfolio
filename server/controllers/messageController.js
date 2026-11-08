@@ -4,6 +4,7 @@ import { httpError } from '../utils/httpError.js';
 import { MESSAGE_STATUSES } from '../config/constants.js';
 import { sendMessageReceived } from '../utils/messageEmails.js';
 import { notifyNewMessage } from '../utils/notificationHelper.js';
+import { findService } from '../utils/services.js';
 
 const str = (v) => (typeof v === 'string' ? v : undefined);
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -23,6 +24,12 @@ export const createMessage = asyncHandler(async (req, res) => {
   // Pretend it worked, store nothing.
   if (typeof b.website === 'string' && b.website.trim()) {
     return res.status(201).json({ success: true, message: 'Message sent.' });
+  }
+
+  // The topic is "general" or the id of a service the photographer offers (services are managed in Admin → Settings, so the list is read live).
+  // A made-up topic is refused, as before services became editable.
+  if (typeof b.subject === 'string' && b.subject && b.subject !== 'general' && !(await findService(b.subject, { activeOnly: false }))) {
+    throw Object.assign(httpError(400, 'Validation failed'), { fieldErrors: { subject: 'Choose one of the listed topics.' } });
   }
 
   const message = await Message.create({

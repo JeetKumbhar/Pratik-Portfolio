@@ -19,6 +19,7 @@ import { WhatsAppConversation as Conv, WhatsAppMessage as Msg, WhatsAppOptOut as
 
 const SECRET = 'test_app_secret_not_real';
 const TOKEN = 'EAAtest_whatsapp_access_token_not_real_0123456789';
+process.env.NODE_ENV = 'test'; // the routes' rate limiter is skipped in tests (the stress test sends hundreds of replies a minute)
 process.env.JWT_SECRET = 'x'.repeat(40);
 process.env.WHATSAPP_APP_SECRET = SECRET;
 process.env.WHATSAPP_ACCESS_TOKEN = TOKEN;
