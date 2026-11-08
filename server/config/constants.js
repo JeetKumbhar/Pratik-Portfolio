@@ -90,12 +90,7 @@ export const WA_DIRECTIONS = ['incoming', 'outgoing'];
 export const WA_CONVERSATION_STATUSES = ['open', 'closed'];
 // received → counted (this message was added to the unread count, exactly once) → processed (conversation summary updated)
 export const WA_PROCESSING_STATUSES = ['received', 'counted', 'processed'];
-export const WA_DELIVERY_STATUSES = [
-  'sent',
-  'delivered',
-  'read',
-  'failed'
-];
+export const WA_DELIVERY_STATUSES = ['sending', 'sent', 'delivered', 'read', 'failed'];
 
 /** Clients (the admin CRM). One client per phone number. */
 export const CLIENT_SOURCES = ['booking', 'whatsapp', 'manual']; // how the client first appeared

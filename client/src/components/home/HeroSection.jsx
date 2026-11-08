@@ -48,7 +48,7 @@ export default function HeroSection() {
               );
             })}
           </ul>
-        )}hie
+        )}
 
         <div className="hero__scroll" aria-hidden="true"><Mouse size={22} strokeWidth={1.3} /><span>Scroll down</span></div>
 
