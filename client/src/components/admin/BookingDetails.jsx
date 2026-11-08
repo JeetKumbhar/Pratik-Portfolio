@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Ban, Check, CheckCheck, Mail, Phone, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, Ban, Check, CheckCheck, Mail, Phone, RotateCcw, Save, Trash2, UserCheck, X } from 'lucide-react';
 import Badge from '../common/Badge';
 import Button from '../common/Button';
 import Textarea from '../common/Textarea';
@@ -32,11 +33,12 @@ export default function BookingDetails({ reference, onClose, onChanged, onDelete
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(''); // name of the action in progress
   const [actionError, setActionError] = useState('');
+  const [clientNote, setClientNote] = useState(null); // { kind: 'ok' | 'warn', text } about the client profile after confirming
   const [confirm, setConfirm] = useState(null); // { kind: 'status', to, future? } | { kind: 'delete' }
   const panelRef = useRef(null);
 
   // The fetched booking becomes local state so an action can update the panel without another request
-  useEffect(() => { setBooking(null); setActionError(''); setConfirm(null); }, [reference]);
+  useEffect(() => { setBooking(null); setActionError(''); setClientNote(null); setConfirm(null); }, [reference]);
   useEffect(() => { if (data) { setBooking(data); setNotes(data.adminNotes ?? ''); } }, [data]);
   const b = booking && booking.reference === reference ? booking : null;
 
@@ -59,9 +61,15 @@ export default function BookingDetails({ reference, onClose, onChanged, onDelete
     setBusy(name);
     setActionError('');
     try {
-      const updated = await updateBooking(token, reference, changes);
+      setClientNote(null);
+      const res = await updateBooking(token, reference, changes);
+      const updated = res.data;
       setBooking(updated);
       setNotes(updated.adminNotes ?? '');
+      // the server creates the client when a booking is confirmed: say what happened (and warn if it could not)
+      if (res.warnings?.clientLink) setClientNote({ kind: 'warn', text: res.warnings.clientLink });
+      else if (res.clientLink === 'created') setClientNote({ kind: 'ok', text: 'Confirmed. A client profile was created for this customer.' });
+      else if (res.clientLink === 'linked') setClientNote({ kind: 'ok', text: 'Confirmed. Added to this customer’s existing client profile.' });
       onChanged();
     } catch (err) {
       setActionError(err.message);
@@ -172,6 +180,20 @@ export default function BookingDetails({ reference, onClose, onChanged, onDelete
         {b && (
           <footer className="drawer__foot">
             {actionError && <p className="form-alert" role="alert"><AlertCircle size={18} /> {actionError}</p>}
+            {clientNote?.kind === 'warn' && <p className="form-alert" role="alert"><AlertCircle size={18} /> {clientNote.text}</p>}
+            {/* stays visible whenever a confirmed booking has no client profile (also after reopening it later), with a way to try again */}
+            {!clientNote && b.clientLinked === false && (b.confirmedAt || ['confirmed', 'completed'].includes(b.status)) && (
+              <div className="form-alert" role="alert">
+                <AlertCircle size={18} /> <span>This confirmed booking has no client profile yet.</span>{' '}
+                <Button variant="outline" size="sm" onClick={() => run('retry', { adminNotes: b.adminNotes ?? '' })} loading={busy === 'retry'} disabled={!!busy && busy !== 'retry'}>Retry</Button>
+              </div>
+            )}
+            {clientNote?.kind === 'ok' && (
+              <p className="cl-notice" role="status">
+                <UserCheck size={16} aria-hidden="true" /> {clientNote.text}{' '}
+                <Link to={`/admin/clients?search=${encodeURIComponent(b.phone)}`}>View in Clients</Link>
+              </p>
+            )}
             <div className="drawer__actions">
               {actionsFor(b.status).map(({ to, label, hint, style }) => {
                 const Icon = ICONS[to];

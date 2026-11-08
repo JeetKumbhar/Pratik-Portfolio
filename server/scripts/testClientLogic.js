@@ -205,7 +205,7 @@ test('the profile summary follows the single repeat rule', () => {
 
 console.log('\n--- backfill planning ---');
 const d = (s) => new Date(s);
-const booking = (o) => ({ _id: `b${o.n}`, bookingId: `AM-${o.n}`, name: 'Priya', email: 'p@example.com', createdAt: d('2026-01-01'), ...o });
+const booking = (o) => ({ _id: `b${o.n}`, bookingId: `AM-${o.n}`, name: 'Priya', email: 'p@example.com', status: 'confirmed', createdAt: d('2026-01-01'), ...o });
 test('records are grouped by normalized number; already-linked records are left alone', () => {
   const plan = planBackfill({
     bookings: [
@@ -246,23 +246,61 @@ test('one number with different names becomes ONE client and is reported for inf
   assert.equal(plan.report.sharedPhoneNames.length, 1);
   assert.equal(plan.report.sharedPhoneNames[0].names.length, 2); // "Priya" and "priya" are the same name
 });
-test('a client\'s "since" date is the OLDEST record, so importing old data does not make everyone new this month', () => {
+test('a client\'s "since" date is the OLDEST booking, so importing old data does not make everyone new this month', () => {
   const plan = planBackfill({
     bookings: [booking({ n: 1, phone: '+91 98765 43210', createdAt: d('2026-03-01'), name: 'Old Name' }), booking({ n: 2, phone: '+91 98765 43210', createdAt: d('2026-09-01'), name: 'New Name', email: 'new@example.com' })],
     conversations: [{ _id: 'w1', phone: KEY, name: 'WA', createdAt: d('2026-02-01') }],
   });
   const input = clientFromGroup(plan.groups[0]);
-  assert.equal(input.createdAt.toISOString(), d('2026-02-01').toISOString());
-  assert.equal(input.source, 'whatsapp'); // the conversation came first
+  assert.equal(input.createdAt.toISOString(), d('2026-03-01').toISOString()); // a WhatsApp conversation does not set it
+  assert.equal(input.source, 'booking');
   assert.equal(input.name, 'New Name'); // the newest booking's name and email
   assert.equal(input.nameSource, 'booking');
   assert.equal(input.email, 'new@example.com');
 });
-test('a conversation with no booking and no name gets a placeholder client', () => {
-  const plan = planBackfill({ conversations: [{ _id: 'w1', phone: KEY, createdAt: d('2026-02-01') }] });
-  const input = clientFromGroup(plan.groups[0]);
-  assert.equal(input.name, '');
-  assert.equal(input.source, 'whatsapp');
+test('a WhatsApp conversation alone NEVER creates a client; it only attaches to a client that exists (or will be created for a confirmed booking)', () => {
+  const alone = planBackfill({ conversations: [{ _id: 'w1', phone: KEY, createdAt: d('2026-02-01') }] });
+  assert.equal(alone.groups.length, 0);
+  assert.equal(alone.report.clientsToCreate, 0);
+  assert.equal(alone.report.conversationsWithoutClient, 1);
+  const known = planBackfill({ conversations: [{ _id: 'w1', phone: KEY, createdAt: d('2026-02-01') }], clients: [{ _id: 'c1', normalizedPhone: KEY }] });
+  assert.equal(known.groups.length, 1);
+  assert.equal(known.groups[0].existingClientId, 'c1');
+  assert.equal(known.report.conversationsToLink, 1);
+  assert.equal(known.report.clientsToCreate, 0);
+});
+test('only CONFIRMED (and completed) bookings are planned; pending and cancelled bookings never get a client', () => {
+  const plan = planBackfill({
+    bookings: [
+      booking({ n: 1, phone: '+91 98765 43210', status: 'pending' }), booking({ n: 2, phone: '+91 91234 56789', status: 'cancelled' }),
+      booking({ n: 3, phone: '+91 98111 22233', status: 'confirmed' }), booking({ n: 4, phone: '+91 98222 33344', status: 'completed' }),
+    ],
+  });
+  assert.deepEqual(plan.groups.map((g) => g.phone).sort(), ['919811122233', '919822233344']);
+  assert.equal(plan.report.bookingsToLink, 2);
+  assert.equal(plan.report.bookingsNotConfirmed, 2);
+  assert.equal(plan.report.clientsToCreate, 2);
+});
+test('a booking that WAS confirmed (confirmedAt) and is cancelled now is still planned; one never confirmed is not', () => {
+  const plan = planBackfill({
+    bookings: [
+      booking({ n: 1, phone: '+91 98765 43210', status: 'cancelled', confirmedAt: d('2026-02-01') }),
+      booking({ n: 2, phone: '+91 91234 56789', status: 'cancelled' }),
+    ],
+    conversations: [], clients: [],
+  });
+  assert.equal(plan.report.clientsToCreate, 1);
+  assert.equal(plan.groups[0].phone, '919876543210');
+});
+test('clients that exist but have no confirmed booking are KEPT and only reported (nothing is deleted or merged)', () => {
+  const plan = planBackfill({
+    bookings: [booking({ n: 1, phone: '+91 98765 43210', clientId: 'c1', status: 'confirmed' }), booking({ n: 2, phone: '+91 98111 22233', clientId: 'c2', status: 'pending' })],
+    conversations: [],
+    clients: [{ _id: 'c1', normalizedPhone: KEY }, { _id: 'c2', normalizedPhone: '919811122233' }, { _id: 'c3', normalizedPhone: '919822233344' }],
+  });
+  assert.equal(plan.report.clientsWithoutConfirmedBooking, 2); // c2 (pending only) and c3 (no booking at all)
+  assert.equal(plan.groups.length, 0);
+  assert.equal(plan.report.clientsToCreate, 0);
 });
 test('running the plan on data that is already fully linked plans nothing', () => {
   const plan = planBackfill({ bookings: [booking({ n: 1, phone: '+91 98765 43210', clientId: 'c1' })], conversations: [{ _id: 'w', phone: KEY, clientId: 'c1' }], clients: [{ _id: 'c1', normalizedPhone: KEY }] });

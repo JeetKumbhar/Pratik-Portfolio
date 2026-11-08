@@ -7,7 +7,7 @@ import { SLOT_TIMES, isBookableDate, isSlotFree } from '../utils/availability.js
 import { sendBookingReceived, sendStatusEmail } from '../utils/bookingEmails.js';
 import { notifyBookingCreated, notifyBookingStatusChanged } from '../utils/notificationHelper.js';
 import { computeBookingStats } from '../utils/bookingStats.js';
-import { safeLinkBooking } from '../utils/clients.js';
+import { phoneMatchesLinkedClient, safeLinkBooking, shouldHaveClient } from '../utils/clients.js';
 import { getSettings } from '../utils/settings.js';
 import { findService } from '../utils/services.js';
 
@@ -93,10 +93,7 @@ export const createBooking = asyncHandler(async (req, res) => {
 
   await booking.save(); // the unique slotKey index is the final guard against a simultaneous double-booking (409)
 
-  // CRM: find or create this customer's client (one per phone number) and attach the booking. Done only AFTER the booking is saved,
-  // so a failed booking never leaves a stray client. It never throws: if it cannot finish, the booking stays saved and unlinked
-  // (`npm run backfill:clients` repairs it) instead of the customer seeing an error for a booking that was made.
-  await safeLinkBooking(booking);
+  // No client is created here: a new booking is "pending". The client appears when the photographer CONFIRMS it (see updateBooking).
 
   sendBookingReceived(booking); // fire and forget: an email problem never fails the booking
   notifyBookingCreated(booking); // WhatsApp: the photographer, then (if they opted in) the customer. Runs after the save and never fails the booking.
@@ -172,10 +169,18 @@ const EDITABLE = [
   'numberOfPeople', 'styles', 'specialRequest', 'budget', 'date', 'time',
 ];
 
+const CLIENT_LINK_WARNINGS = {
+  unmatched: 'The booking is confirmed, but no client profile was created: the phone number has no country code and is too short to place. Edit the number (e.g. +91 98765 43210) and save the booking again.',
+  error: 'The booking is confirmed, but its client profile could not be created right now. Save the booking again in a moment to retry.',
+  skipped: 'The booking is confirmed, but its client profile could not be created right now. Save the booking again in a moment to retry.',
+  noPhone: 'The booking is confirmed, but it has no phone number, so no client profile could be created. Add the customer\'s number to the booking and save it again.',
+  mismatch: 'This booking\'s phone number no longer matches the client it is linked to. The booking stays with that client. If it belongs to a different person, edit the client\'s details or contact support to move it.',
+};
+
 export const updateBooking = asyncHandler(async (req, res) => {
   const body = req.body ?? {};
   const booking = await findBooking(req.params.id, { withNotes: true });
-  const before = { status: booking.status, date: booking.date, time: booking.time, hours: booking.package?.durationHours, shootType: booking.shootType };
+  const before = { status: booking.status, date: booking.date, time: booking.time, hours: booking.package?.durationHours, shootType: booking.shootType, phone: booking.phone };
 
   let touched = false;
   EDITABLE.forEach((key) => {
@@ -206,6 +211,8 @@ export const updateBooking = asyncHandler(async (req, res) => {
     }
   }
 
+  if (booking.status === 'confirmed' && !booking.confirmedAt) booking.confirmedAt = new Date(); // remembered even if the booking is cancelled later
+
   await booking.validate();
 
   // Only look for conflicts when the booking will hold a slot AND the slot or status changed
@@ -220,12 +227,35 @@ export const updateBooking = asyncHandler(async (req, res) => {
 
   await booking.save(); // save() (not findByIdAndUpdate) so the slot lock is recalculated
 
+  // CRM: a CONFIRMED booking gets its client (found by normalized phone number, or created) and is attached to it. This happens on the
+  // server, only AFTER the status is saved, so a booking that failed to save never leaves a stray client. It is safe to repeat (the booking
+  // is attached once, a second confirmation changes nothing) and it never throws: if it cannot finish, the booking stays confirmed, the
+  // admin is told in `warnings.clientLink`, and the link is retried the next time this booking is saved (or by `npm run backfill:clients`).
+  let clientLink;
+  if (shouldHaveClient(booking) && (booking.status !== before.status || !booking.clientId)) {
+    clientLink = (await safeLinkBooking(booking)).outcome;
+    if (['created', 'linked', 'already_linked'].includes(clientLink)) {
+      // the link is written with its own guarded update, so this in-memory copy does not know it yet: refresh it (display only, never saved)
+      try { const fresh = await Booking.findOne({ _id: booking._id }).select('clientId').lean(); if (fresh?.clientId) booking.clientId = fresh.clientId; } catch { /* the flag is a courtesy */ }
+    }
+  } else if (booking.clientId && booking.phone !== before.phone) {
+    // The number of a booking that already has a client was changed. The booking stays with that client (never moved automatically):
+    // if the new number belongs to someone else, say so instead of leaving it silent.
+    try { if (!(await phoneMatchesLinkedClient(booking))) clientLink = 'mismatch'; } catch { /* the check is only a courtesy */ }
+  }
+
   if (booking.status !== before.status) {
     sendStatusEmail(booking); // confirmed / cancelled only
     notifyBookingStatusChanged(booking); // WhatsApp to the customer (confirmed / cancelled), if they opted in
   }
 
-  res.json({ success: true, data: booking });
+  const needsAttention = ['error', 'skipped', 'unmatched', 'mismatch'].includes(clientLink);
+  res.json({
+    success: true,
+    data: booking,
+    ...(clientLink && { clientLink }), // created | linked | already_linked | unmatched | error | skipped
+    ...(needsAttention && { warnings: { clientLink: clientLink === 'unmatched' && !booking.phone ? CLIENT_LINK_WARNINGS.noPhone : CLIENT_LINK_WARNINGS[clientLink] } }),
+  });
 });
 
 // ---------------------------------------------------------------- DELETE /api/bookings/:id  (ADMIN)

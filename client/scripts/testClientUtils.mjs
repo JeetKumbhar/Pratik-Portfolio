@@ -32,7 +32,7 @@ test('URL parameters: only allowed values get through', () => {
   assert.equal(oneOf('mostBookings', CLIENT_SORTS, 'recent'), 'mostBookings');
 });
 test('filter and sort values match what the API accepts', () => {
-  assert.deepEqual(CLIENT_FILTERS.map((f) => f.value), ['all', 'new', 'repeat', 'upcoming', 'none']);
+  assert.deepEqual(CLIENT_FILTERS.map((f) => f.value), ['all', 'new', 'repeat', 'upcoming']);
   assert.deepEqual(CLIENT_SORTS.map((f) => f.value), ['recent', 'oldest', 'lastBooking', 'mostBookings']);
   assert.deepEqual(BOOKING_FILTERS.map((f) => f.value), ['all', 'upcoming', 'completed', 'cancelled']);
 });

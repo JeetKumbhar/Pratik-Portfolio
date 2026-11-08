@@ -3,16 +3,14 @@ import { Link } from 'react-router-dom';
 import Modal from '../../common/Modal';
 import Button from '../../common/Button';
 import Input from '../../common/Input';
-import Textarea from '../../common/Textarea';
 import useAuth from '../../../hooks/useAuth';
-import { createClient, updateClient } from '../../../services/clientService';
-import { NOTE_MAX } from '../../../utils/clientUtils';
+import { updateClient } from '../../../services/clientService';
 
-const EMPTY = { name: '', phone: '', email: '', city: '', notes: '' };
+const EMPTY = { name: '', phone: '', email: '', city: '' };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** What the browser can check before asking the server (the server checks everything again). */
-function check(form, { editing }) {
+function check(form) {
   const errors = {};
   const name = form.name.trim();
   if (name.length < 2) errors.name = 'Enter the client’s full name.';
@@ -22,18 +20,16 @@ function check(form, { editing }) {
   else if (digits.length < 7 || digits.length > 15) errors.phone = 'Enter a valid phone number, with the country code if it is not an Indian number.';
   if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) errors.email = 'Enter a valid email address.';
   if (form.city.trim().length > 80) errors.city = 'City must be 80 characters or fewer.';
-  if (!editing && form.notes.length > NOTE_MAX) errors.notes = `Notes must be ${NOTE_MAX} characters or fewer.`;
   return errors;
 }
 
 /**
- * Add a client (client = null) or edit one (client = the profile data).
- *   onSaved(client, { existing })  existing = true when the phone number already had a client (add only): nothing was changed.
+ * Edit a client's contact details (client = the row or profile data). Clients are never added by hand: they appear when a booking is confirmed.
+ *   onSaved(client)  the updated client
  * A phone number that belongs to a different client is shown as a message under the field, with a link to that client.
  */
 export default function ClientFormModal({ isOpen, onClose, client = null, onSaved }) {
   const { token } = useAuth();
-  const editing = Boolean(client);
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -49,7 +45,7 @@ export default function ClientFormModal({ isOpen, onClose, client = null, onSave
   // Start fresh (or from the client being edited) every time the dialog opens
   useEffect(() => {
     if (!isOpen) return;
-    setForm(client ? { name: client.name ?? '', phone: client.phone ?? '', email: client.email ?? '', city: client.city ?? '', notes: '' } : EMPTY);
+    setForm(client ? { name: client.name ?? '', phone: client.phone ?? '', email: client.email ?? '', city: client.city ?? '' } : EMPTY);
     setErrors({}); setFormError(''); setDuplicate(null); setSaving(false);
   }, [isOpen, client]);
 
@@ -61,20 +57,15 @@ export default function ClientFormModal({ isOpen, onClose, client = null, onSave
 
   const submit = async (e) => {
     e.preventDefault();
-    if (saving) return;
-    const found = check(form, { editing });
+    if (saving || !client) return;
+    const found = check(form);
     if (Object.keys(found).length) { setErrors(found); return; }
 
     setSaving(true); setFormError('');
     try {
       const values = { name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim(), city: form.city.trim() };
-      if (editing) {
-        const saved = await updateClient(token, client.id, values);
-        onSaved?.(saved, { existing: false });
-      } else {
-        const res = await createClient(token, { ...values, ...(form.notes.trim() && { notes: form.notes.trim() }) });
-        onSaved?.(res.data, { existing: Boolean(res.existing), message: res.message });
-      }
+      const saved = await updateClient(token, client.id, values);
+      onSaved?.(saved);
     } catch (err) {
       setSaving(false);
       if (err.status === 409 && err.data?.existing) setDuplicate(err.data.existing);
@@ -88,11 +79,11 @@ export default function ClientFormModal({ isOpen, onClose, client = null, onSave
     <Modal
       isOpen={isOpen}
       onClose={requestClose}
-      title={editing ? 'Edit client' : 'Add client'}
+      title="Edit client"
       footer={(
         <>
           <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} loading={busy}>{editing ? 'Save changes' : 'Add client'}</Button>
+          <Button onClick={submit} loading={busy}>Save changes</Button>
         </>
       )}
     >
@@ -109,12 +100,6 @@ export default function ClientFormModal({ isOpen, onClose, client = null, onSave
         )}
         <Input label="Email" type="email" value={form.email} onChange={set('email')} error={errors.email} hint="Optional" autoComplete="off" />
         <Input label="City" value={form.city} onChange={set('city')} error={errors.city} hint="Optional" maxLength={80} autoComplete="off" />
-        {!editing && (
-          <Textarea
-            label="Additional notes" value={form.notes} onChange={set('notes')} error={errors.notes} maxLength={NOTE_MAX} rows={3}
-            hint="Optional. Saved as a private note on this client."
-          />
-        )}
         {formError && <p className="cl-form__error" role="alert">{formError}</p>}
         <button type="submit" className="sr-only" tabIndex={-1}>Save</button>
       </form>

@@ -1,10 +1,13 @@
 /**
  * npm run backfill:clients              → DRY RUN: reads everything, writes NOTHING, prints a report
- * npm run backfill:clients -- --apply   → creates the missing clients and links old bookings / WhatsApp conversations to them
+ * npm run backfill:clients -- --apply   → creates the missing clients and links old CONFIRMED bookings / WhatsApp conversations to them
  *
- * Run it once after deploying the Clients section (existing bookings and conversations were made before clients existed).
+ * A client now exists only because of a confirmed booking (it is created automatically when the photographer confirms one).
+ * Run this once after deploying that change: it covers bookings that were confirmed BEFORE it, or whose link failed.
+ * Pending and cancelled bookings never get a client, and a WhatsApp conversation is only attached to a client that exists.
  * Safe to run again at any time: it only ever fills in records that have no client yet, never moves a record that already
- * has one, never deletes anything and never merges two clients. It is also safe while the website is live (one client per
+ * has one, never deletes anything and never merges two clients. Clients that already exist but have no confirmed booking
+ * (made by the earlier version from a pending booking or a WhatsApp message, or typed in by hand) are KEPT and only reported. It is also safe while the website is live (one client per
  * phone number is enforced by a unique index, so a booking arriving at the same moment cannot create a duplicate).
  *
  * The report lists what needs a human decision (see utils/clientBackfill.js): numbers it could not place, one number used by
@@ -27,18 +30,21 @@ try {
   await Promise.all(Object.values(mongoose.models).map((m) => m.init())); // the unique + lookup indexes must exist before we write
 
   const [bookings, conversations, clients] = await Promise.all([
-    Booking.find({}).select('bookingId name email phone createdAt clientId').lean(),
+    Booking.find({}).select('bookingId name email phone status confirmedAt createdAt clientId').lean(),
     WhatsAppConversation.find({}).select('phone name createdAt clientId').lean(),
-    Client.find({}).select('normalizedPhone').lean(),
+    Client.find({}).select('normalizedPhone').lean(), // _id comes with it
   ]);
 
   const { groups, report } = planBackfill({ bookings, conversations, clients });
 
   line(`\nClients backfill (${apply ? 'APPLY' : 'DRY RUN'})`);
   line('-----------------------------------');
-  line(`Bookings:       ${report.bookingsTotal} total, ${report.bookingsAlreadyLinked} already linked, ${report.bookingsToLink} to link`);
-  line(`Conversations:  ${report.conversationsTotal} total, ${report.conversationsAlreadyLinked} already linked, ${report.conversationsToLink} to link`);
+  line(`Bookings:       ${report.bookingsTotal} total, ${report.bookingsAlreadyLinked} already linked, ${report.bookingsToLink} confirmed to link, ${report.bookingsNotConfirmed} pending/cancelled (no client)`);
+  line(`Conversations:  ${report.conversationsTotal} total, ${report.conversationsAlreadyLinked} already linked, ${report.conversationsToLink} to link, ${report.conversationsWithoutClient} with no client yet (left in the inbox)`);
   line(`Clients:        ${report.clientsExisting} exist, ${report.clientsToCreate} would be created`);
+  if (report.clientsWithoutConfirmedBooking) {
+    line(`\nFOR INFORMATION: ${report.clientsWithoutConfirmedBooking} existing client(s) have no confirmed booking (made earlier from a pending booking, a WhatsApp message or by hand). They are KEPT: nothing is deleted or merged.`);
+  }
 
   if (report.unlinkable.length) {
     line(`\nNEEDS REVIEW: ${report.unlinkable.length} booking(s) have a phone number that cannot be placed. They stay unlinked:`);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
-  getClientStats, getClients, createClient, getClient, updateClient, getClientBookings, getClientWhatsApp,
+  getClientStats, getClients, getClient, updateClient, getClientBookings, getClientWhatsApp,
   getClientNotes, addClientNote, updateClientNote, deleteClientNote,
 } from '../controllers/clientController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -21,7 +21,6 @@ router.use(protect, adminOnly);
 
 router.get('/stats', getClientStats); // must stay above '/:id', or "stats" would be treated as an id
 router.get('/', getClients);
-router.post('/', createClient);
 router.get('/:id', getClient);
 router.patch('/:id', updateClient);
 router.get('/:id/bookings', getClientBookings);

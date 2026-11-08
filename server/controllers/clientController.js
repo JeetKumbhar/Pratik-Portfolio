@@ -3,7 +3,6 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { httpError } from '../utils/httpError.js';
 import { CLIENT_BOOKING_FILTERS, CLIENT_FILTERS, CLIENT_SORTS } from '../config/constants.js';
 import { parseClientInput, parseNoteInput } from '../utils/clientInput.js';
-import { createManualClient } from '../utils/clients.js';
 import { findConversation, getStats, getSummary, listBookings, listClients, publicClient } from '../utils/clientQueries.js';
 
 /**
@@ -71,18 +70,8 @@ export const getClients = asyncHandler(async (req, res) => {
   res.json({ success: true, total, page, pages: Math.max(1, Math.ceil(total / limit)), count: rows.length, data: rows });
 });
 
-// ---------------------------------------------------------------- POST /api/clients
-// body: { name, phone, email?, city?, notes? }
-// 201 = created. 200 + existing:true = that phone number already had a client: the EXISTING client is returned and nothing is changed.
-export const createClient = asyncHandler(async (req, res) => {
-  const { values } = parseClientInput(req.body);
-  const { client, created } = await createManualClient({ values, author: req.user });
-
-  if (!created) {
-    return res.status(200).json({ success: true, existing: true, message: 'A client with this phone number already exists. Nothing was changed.', data: publicClient(client) });
-  }
-  return res.status(201).json({ success: true, existing: false, data: publicClient(client) });
-});
+// There is deliberately NO "create client" route: a client appears automatically when a booking is confirmed
+// (see utils/clients.js → linkBookingToClient, called from controllers/bookingController.js → updateBooking).
 
 // ---------------------------------------------------------------- GET /api/clients/:id
 // the client + their booking numbers (total, upcoming, completed, cancelled, last booking, New / Repeat)

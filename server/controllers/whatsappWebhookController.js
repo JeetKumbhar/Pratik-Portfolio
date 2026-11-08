@@ -36,7 +36,7 @@ export const receiveEvents = asyncHandler(async (req, res) => {
     try {
       const { outcome } = await storeIncomingMessage(message);
       if (outcome === 'invalid') console.error('[whatsapp] skipped an incoming message that cannot be stored (unusable data)');
-      else await safeLinkWhatsApp(message); // CRM: find or create the client and link the conversation. Runs AFTER the message is stored, never throws, never changes what Meta is answered.
+      else await safeLinkWhatsApp(message); // CRM: attach the conversation to the client with this number IF one exists (a message never creates a client). Runs AFTER the message is stored, never throws, never changes what Meta is answered.
     } catch (err) {
       if (isPermanentDataError(err)) {
         console.error(`[whatsapp] skipped an incoming message that cannot be stored (${err.name})`); // retrying could never fix it

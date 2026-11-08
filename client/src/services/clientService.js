@@ -14,12 +14,7 @@ export const getClientStats = (token) => api.get('/clients/stats', { token }).th
  */
 export const getClients = (token, params) => api.get('/clients', { token, params });
 
-/**
- * POST /api/clients → { existing, message?, data: client }
- * existing === true means that phone number already had a client: the EXISTING client comes back and nothing was changed.
- * body: { name, phone, email?, city?, notes? }
- */
-export const createClient = (token, body) => api.post('/clients', body, { token });
+// There is no "create client": a client appears automatically when a booking is CONFIRMED (PATCH /api/bookings/:reference).
 
 /** GET /api/clients/:id → the client + summary { totalBookings, upcomingBookings, completedBookings, cancelledBookings, lastBookingAt, type: 'new'|'repeat' } */
 export const getClient = (token, id) => api.get(`/clients/${encodeURIComponent(id)}`, { token }).then((r) => r.data);

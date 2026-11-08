@@ -23,9 +23,13 @@ export const getBookings = (token, params) => api.get('/bookings', { token, para
 /** GET /api/bookings/:reference → one booking, including the private admin notes */
 export const getBooking = (token, reference) => api.get(`/bookings/${encodeURIComponent(reference)}`, { token }).then((r) => r.data);
 
-/** PATCH /api/bookings/:reference → the updated booking. changes: { status } | { adminNotes } | { date, time } … */
+/**
+ * PATCH /api/bookings/:reference → { data: the updated booking, clientLink?, warnings? }. changes: { status } | { adminNotes } | { date, time } …
+ * Confirming a booking also creates (or finds) the customer's client on the server. `clientLink` says what happened:
+ * 'created' | 'linked' | 'already_linked' | 'unmatched' | 'error' | 'skipped'; `warnings.clientLink` is a message to show when it needs attention.
+ */
 export const updateBooking = (token, reference, changes) =>
-  api.patch(`/bookings/${encodeURIComponent(reference)}`, changes, { token }).then((r) => r.data);
+  api.patch(`/bookings/${encodeURIComponent(reference)}`, changes, { token });
 
 /** DELETE /api/bookings/:reference → permanent */
 export const deleteBooking = (token, reference) => api.delete(`/bookings/${encodeURIComponent(reference)}`, { token });

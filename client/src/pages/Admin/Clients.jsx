@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CalendarCheck, ChevronLeft, ChevronRight, CloudOff, Pencil, Repeat, Search, UserPlus, Users, UserRoundX, X } from 'lucide-react';
 import StatCard from '../../components/admin/StatCard';
 import ClientFormModal from '../../components/admin/clients/ClientFormModal';
@@ -20,7 +20,6 @@ import { cx } from '../../utils/helpers';
  */
 export default function Clients() {
   const { token } = useAuth();
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
   const filter = oneOf(params.get('filter'), CLIENT_FILTERS, 'all');
@@ -60,20 +59,14 @@ export default function Clients() {
   // The last row of the last page was removed or the list shrank: step back to a page that exists
   useEffect(() => { if (res && page > res.pages) changeParams({ page: res.pages > 1 ? String(res.pages) : '' }); }, [res]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [notice, setNotice] = useState('');
-  const closeForm = () => { setFormOpen(false); setEditing(null); };
-  const refreshAll = () => { list.reload(); stats.reload(); };
+  const closeForm = () => setEditing(null);
 
-  const saved = (client, { existing, message }) => {
+  const saved = () => {
     closeForm();
-    if (existing) { // that phone number already had a client: show them instead of creating another
-      navigate(`/admin/clients/${client.id}`, { state: { notice: message || 'A client with this phone number already exists.' } });
-      return;
-    }
-    setNotice(editing ? 'Client updated.' : 'Client added.');
-    refreshAll();
+    setNotice('Client updated.');
+    list.reload(); stats.reload();
   };
   useEffect(() => { if (!notice) return undefined; const t = setTimeout(() => setNotice(''), 4000); return () => clearTimeout(t); }, [notice]);
 
@@ -83,8 +76,7 @@ export default function Clients() {
   return (
     <div className="bk cl">
       <div className="cl__top">
-        <p className="cl__lead">Everyone who has booked, messaged on WhatsApp or been added by you, in one place.</p>
-        <Button icon={<UserPlus size={16} />} onClick={() => setFormOpen(true)}>Add client</Button>
+        <p className="cl__lead">Everyone whose booking you have confirmed. A client is added here automatically the moment you confirm their booking.</p>
       </div>
 
       {notice && <p className="cl-notice" role="status">{notice}</p>}
@@ -134,8 +126,8 @@ export default function Clients() {
           <EmptyState
             icon={<UserRoundX size={28} />}
             title={filtered ? 'No clients match' : 'No clients yet'}
-            message={filtered ? 'Try a different search or clear the filters.' : 'Clients appear here automatically when someone books or messages you on WhatsApp. You can also add one yourself.'}
-            action={!filtered && <Button icon={<UserPlus size={16} />} onClick={() => setFormOpen(true)}>Add client</Button>}
+            message={filtered ? 'Try a different search or clear the filters.' : 'Clients will appear here once you confirm a booking. Nothing to enter by hand: confirm a booking and the customer is added automatically.'}
+            action={!filtered && <Button to="/admin/bookings?status=pending">Review pending bookings</Button>}
           />
         )}
 
@@ -178,7 +170,7 @@ export default function Clients() {
         )}
       </section>
 
-      <ClientFormModal isOpen={formOpen || Boolean(editing)} onClose={closeForm} client={editing} onSaved={saved} />
+      <ClientFormModal isOpen={Boolean(editing)} onClose={closeForm} client={editing} onSaved={saved} />
     </div>
   );
 }

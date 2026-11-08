@@ -33,7 +33,6 @@ export const CLIENT_FILTERS = [
   { value: 'new', label: 'New' },
   { value: 'repeat', label: 'Repeat' },
   { value: 'upcoming', label: 'Upcoming booking' },
-  { value: 'none', label: 'No bookings' },
 ];
 export const CLIENT_SORTS = [
   { value: 'recent', label: 'Recently added' },

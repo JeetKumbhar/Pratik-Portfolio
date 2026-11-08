@@ -100,6 +100,9 @@ const bookingSchema = new mongoose.Schema(
     // booking that fails never leaves a stray client behind. Absent on bookings made before the Clients section existed until
     // `npm run backfill:clients -- --apply` links them. Never sent to the browser (see toJSON below).
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
+    // Set once, the first time the photographer confirms the booking (never cleared). It remembers that this booking WAS confirmed,
+    // so a booking that is confirmed and later cancelled still gets its client if the first attempt failed. Absent = never confirmed.
+    confirmedAt: { type: Date },
     adminNotes: { type: String, trim: true, maxlength: 1000, default: '', select: false }, // admin-only: query with .select('+adminNotes')
 
     // managed automatically, see above. `default: undefined` keeps the field ABSENT (not []) when inactive,
@@ -113,6 +116,7 @@ const bookingSchema = new mongoose.Schema(
         ret.id = String(ret._id);
         ret.reference = ret.bookingId; // what the frontend calls it
         delete ret.slotKeys;
+        ret.clientLinked = Boolean(doc.clientId); // only whether it has a client (the admin screen warns when a confirmed booking has none), never the id
         delete ret.clientId; // internal link to the CRM: the public booking response must not carry it
         delete ret.__v;
         return ret;

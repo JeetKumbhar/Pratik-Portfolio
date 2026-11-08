@@ -10,8 +10,9 @@
  *     MongoDB's query and aggregation language), so the pipelines are really run and checked, but a real server may still
  *     differ in small ways. UNIQUE INDEXES are simulated by hand (normalizedPhone). Real indexes are not built here.
  *   - NOT tested here: Meta / WhatsApp. WhatsApp senders come in through the same function the webhook calls.
- *   - Tested for real: schema validation, the auth middleware, request validation, response shapes, the booking and WhatsApp
- *     linking rules, duplicate prevention under simultaneous requests, and that no private data leaks.
+ *   - Tested for real: schema validation, the auth middleware, request validation, response shapes, the "client is created when a
+ *     booking is CONFIRMED" rules (real PATCH /api/bookings/:id controller), the WhatsApp linking rules, duplicate prevention under
+ *     simultaneous requests, and that no private data leaks.
  * To check against a real database, run the server and use `npm run test:clients-api`.
  *
  * Needs the `mingo` dev dependency (npm install).
@@ -35,7 +36,9 @@ const { Booking, BlockedDate, Client, ClientNote, Package, Service, Setting, Use
 const { signToken } = await import('../utils/token.js');
 const { errorHandler, notFound } = await import('../middleware/errorMiddleware.js');
 const { default: clientRoutes } = await import('../routes/clientRoutes.js');
-const { createBooking } = await import('../controllers/bookingController.js');
+const { createBooking, updateBooking } = await import('../controllers/bookingController.js');
+const { protect } = await import('../middleware/authMiddleware.js');
+const { adminOnly } = await import('../middleware/adminMiddleware.js');
 const clientsService = await import('../utils/clients.js');
 const { addDays, todayKey } = await import('../utils/validators.js');
 
@@ -182,6 +185,7 @@ const outsiderToken = signToken(OUTSIDER._id);
 const app = express();
 app.use(express.json());
 app.post('/api/bookings', createBooking); // the real controller (the route-level rate limiter is left out so the test can book freely)
+app.patch('/api/bookings/:id', protect, adminOnly, updateBooking); // the real status change: this is where a client is created
 app.use('/api/clients', clientRoutes);
 app.use(notFound);
 app.use(errorHandler);
@@ -210,6 +214,10 @@ const bookingBody = (o = {}) => ({
   package: { id: 'standard' }, date: addDays(todayKey(), bookingDay += 1), time: '10:00', ...o,
 });
 const book = (o) => post('/api/bookings', bookingBody(o), { token: null });
+/** the admin sets a booking's status (default: confirmed). `r` = the response of book() */
+const setStatus = (r, status = 'confirmed', extra = {}) => patch(`/api/bookings/${r.json.data.reference}`, { status, ...extra });
+const confirm = (r, extra) => setStatus(r, 'confirmed', extra);
+const bookAndConfirm = async (o) => { const r = await book(o); const c = await confirm(r); assert.equal(c.status, 200, c.text); return { booking: r, confirmed: c }; };
 const clientByPhone = (p) => db.clients.find((c) => c.normalizedPhone === p);
 const seedClient = (o = {}) => {
   const row = { _id: String(new mongoose.Types.ObjectId()), name: 'Seed', phone: '+91 90000 00000', normalizedPhone: '919000000000', email: '', city: '', source: 'manual', nameSource: 'manual', createdAt: new Date(), updatedAt: new Date(), ...o };
@@ -278,56 +286,317 @@ await test('[3] an admin is let in', async () => {
   assert.equal((await get('/api/clients')).status, 200);
 });
 
-// ======================================================================= 2  creating a client by hand
-section('2  creating a client by hand, duplicates and validation');
-await test('[4] creating a client stores it normalized and returns only safe fields (201)', async () => {
-  const r = await post('/api/clients', { name: '  Priya   Sharma ', phone: '098765 43210', email: 'Priya@Example.com', city: 'Pune', notes: 'Prefers candid shots' });
+// ======================================================================= 2  clients are created by confirmed bookings only
+section('2  there is no manual "add client": clients come from confirmed bookings');
+await test('[4] POST /api/clients no longer exists (an admin gets 404) and nothing is created', async () => {
+  const r = await post('/api/clients', { name: 'Priya Sharma', phone: '+91 98765 43210', email: 'priya@example.com' });
+  assert.equal(r.status, 404);
+  assert.equal(db.clients.length, 0);
+  assert.equal((await post('/api/clients', { name: 'x' }, { token: null })).status, 401); // still private
+});
+await test('[5] a pending booking creates NO client (and the public response carries no internal link)', async () => {
+  const r = await book();
   assert.equal(r.status, 201);
-  assert.equal(r.json.existing, false);
-  assert.equal(db.clients.length, 1);
-  const row = db.clients[0];
-  assert.equal(row.normalizedPhone, PRIYA);
-  assert.equal(row.phone, '+91 98765 43210');
-  assert.equal(row.email, 'priya@example.com');
-  assert.equal(row.source, 'manual');
-  assert.equal(row.nameSource, 'manual');
-  assert.deepEqual(Object.keys(r.json.data).sort(), ['city', 'createdAt', 'email', 'id', 'name', 'phone', 'source', 'updatedAt']);
-  assert.equal(r.json.data.name, 'Priya Sharma');
-  assert.equal(db.notes.length, 1); // "Additional notes" becomes the first private note
-  assert.equal(db.notes[0].authorName, 'Pratik Shelke');
-  assert.equal(db.notes[0].clientId, row._id);
+  assert.equal(r.json.data.status, 'pending');
+  assert.equal(db.clients.length, 0);
+  assert.equal(db.bookings[0].clientId, undefined);
+  assert.ok(!('clientId' in r.json.data));
+  const stats = await get('/api/clients/stats');
+  assert.deepEqual(stats.json.data, { total: 0, newThisMonth: 0, repeat: 0, totalBookings: 0 });
 });
-await test('[5] only name and phone are required; bad input gets per-field 400 messages', async () => {
-  assert.equal((await post('/api/clients', { name: 'Anita', phone: '+91 98111 22233' })).status, 201);
-  const r = await post('/api/clients', { name: '', phone: '12', email: 'nope' });
-  assert.equal(r.status, 400);
-  assert.deepEqual(Object.keys(r.json.errors).sort(), ['email', 'name', 'phone']);
-  assert.equal((await post('/api/clients', { name: 'Raj', phone: '1234567' })).status, 400); // too short to place without a country code
-  assert.equal((await post('/api/clients', { name: { $ne: 1 }, phone: { $gt: '' } })).status, 400);
-  assert.equal((await post('/api/clients', 'not json object')).status, 400);
+await test('[6] FIRST booking confirmed → exactly one client is created from the booking and the booking is linked to it', async () => {
+  const { booking, confirmed } = await bookAndConfirm();
+  assert.equal(confirmed.json.clientLink, 'created');
+  assert.ok(!confirmed.json.warnings);
+  assert.equal(db.clients.length, 1);
+  const c = db.clients[0];
+  assert.equal(c.normalizedPhone, PRIYA);
+  assert.equal(c.phone, '+91 98765 43210');
+  assert.equal(c.name, 'Priya Sharma');
+  assert.equal(c.nameSource, 'booking');
+  assert.equal(c.source, 'booking');
+  assert.equal(c.email, 'priya@example.com');
+  assert.equal(c.city, '');
+  assert.equal(db.bookings[0].status, 'confirmed');
+  assert.equal(db.bookings[0].clientId, c._id);
+  assert.ok(!('clientId' in confirmed.json.data), 'the booking response must not carry the internal link');
+  assert.ok(!confirmed.text.includes(c._id));
+  const detail = await get(`/api/clients/${c._id}`);
+  assert.equal(detail.json.data.summary.totalBookings, 1);
+  assert.equal(detail.json.data.summary.type, 'new');
+  assert.deepEqual((await get('/api/clients/stats')).json.data, { total: 1, newThisMonth: 1, repeat: 0, totalBookings: 1 });
+  assert.equal(booking.status, 201);
+});
+await test('[7] SECOND booking of the same customer confirmed → the existing client is updated, not duplicated (other format, other email)', async () => {
+  await bookAndConfirm();
+  const { booking, confirmed } = await bookAndConfirm({ phone: '098765 43210', email: 'priya.work@example.com', name: 'Priya S' });
+  assert.equal(confirmed.json.clientLink, 'linked');
+  assert.equal(db.clients.length, 1);
+  const c = db.clients[0];
+  assert.equal(c.email, 'priya@example.com'); // the client keeps its own email
+  assert.equal(c.name, 'Priya Sharma'); // the first booking's name stays (same rank, never overwritten)
+  assert.equal(db.bookings.length, 2);
+  assert.ok(db.bookings.every((b) => b.clientId === c._id));
+  assert.equal(db.bookings[1].email, 'priya.work@example.com'); // the booking keeps what the customer typed
+  const detail = (await get(`/api/clients/${c._id}`)).json.data;
+  assert.equal(detail.summary.totalBookings, 2);
+  assert.equal(detail.summary.type, 'repeat');
+  assert.equal((await get('/api/clients/stats')).json.data.totalBookings, 2);
+  assert.equal(booking.status, 201);
+});
+await test('[8] the SAME booking confirmed twice (and cancelled → pending → confirmed again) never duplicates the client or the count', async () => {
+  const r = await book();
+  assert.equal((await confirm(r)).json.clientLink, 'created');
+  const again = await confirm(r); // already confirmed: saving it again must be harmless
+  assert.equal(again.status, 200);
+  assert.equal(again.json.clientLink, undefined); // nothing to do
+  assert.equal((await confirm(r, { adminNotes: 'sent the contract' })).status, 200);
+  assert.equal((await setStatus(r, 'cancelled')).status, 200);
+  assert.equal((await setStatus(r, 'pending')).status, 200);
+  const third = await confirm(r);
+  assert.equal(third.json.clientLink, 'already_linked');
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings.filter((b) => b.clientId).length, 1);
+  assert.equal((await get(`/api/clients/${db.clients[0]._id}`)).json.data.summary.totalBookings, 1);
+  assert.equal((await get('/api/clients/stats')).json.data.totalBookings, 1);
+});
+await test('[9] the same booking confirmed by two requests at the same moment links once', async () => {
+  const r = await book();
+  const results = await Promise.all([confirm(r), confirm(r), confirm(r)]);
+  assert.ok(results.every((x) => x.status === 200));
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
+  assert.equal((await get('/api/clients/stats')).json.data.totalBookings, 1);
+});
+await test('[10] two DIFFERENT bookings for the same phone number confirmed at the same moment → only ONE client exists', async () => {
+  const a = await book({ phone: '+91 98765 43210', name: 'Priya A', date: addDays(todayKey(), 90) });
+  const b = await book({ phone: '098765 43210', name: 'Priya B', email: 'b@example.com', date: addDays(todayKey(), 91) });
+  const c = await book({ phone: '9876543210', name: 'Priya C', email: 'c@example.com', date: addDays(todayKey(), 92) });
+  const d = await book({ phone: '0091-98765-43210', name: 'Priya D', email: 'd@example.com', date: addDays(todayKey(), 93) });
+  const results = await Promise.all([a, b, c, d].map((x) => confirm(x)));
+  assert.ok(results.every((x) => x.status === 200), results.map((x) => x.status).join());
+  assert.equal(db.clients.length, 1, 'one client per phone number');
+  assert.ok(db.bookings.every((x) => x.clientId === db.clients[0]._id));
+  assert.equal(results.filter((x) => x.json.clientLink === 'created').length, 1);
+  assert.equal((await get(`/api/clients/${db.clients[0]._id}`)).json.data.summary.totalBookings, 4);
+});
+await test('[11] different phone numbers confirmed together → one client each', async () => {
+  const people = ['+91 98111 22233', '+91 98222 33344', '+91 98333 44455'];
+  const bookings = [];
+  for (const [i, phone] of people.entries()) bookings.push(await book({ phone, name: `Person ${i}`, email: `p${i}@example.com`, date: addDays(todayKey(), 95 + i) }));
+  await Promise.all(bookings.map((x) => confirm(x)));
+  assert.equal(db.clients.length, 3);
+  assert.equal(new Set(db.bookings.map((x) => x.clientId)).size, 3);
+});
+await test('[12] a cancelled booking creates no client, and a pending booking that is cancelled creates none either', async () => {
+  const r = await book();
+  assert.equal((await setStatus(r, 'cancelled')).status, 200);
+  assert.equal(db.clients.length, 0);
+  assert.equal(db.bookings[0].clientId, undefined);
+  assert.equal((await setStatus(r, 'cancelled')).json.clientLink, undefined);
+  // a status change that is not allowed (pending → completed) changes nothing and creates nothing
+  const other = await book({ phone: '+91 98111 22233', date: addDays(todayKey(), 99) });
+  assert.equal((await setStatus(other, 'completed')).status, 400);
+  assert.equal(db.clients.length, 0);
+});
+await test('[13] a confirmed booking that is later cancelled or completed keeps its client and its link (history is preserved)', async () => {
+  const { booking } = await bookAndConfirm();
+  const clientId = db.clients[0]._id;
+  assert.equal((await setStatus(booking, 'cancelled')).status, 200);
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, clientId);
+  const detail = (await get(`/api/clients/${clientId}`)).json.data;
+  assert.equal(detail.summary.totalBookings, 1);
+  assert.equal(detail.summary.cancelledBookings, 1);
+  assert.equal((await get(`/api/clients/${clientId}/bookings`)).json.data.length, 1);
+
+  const second = await bookAndConfirm({ date: addDays(todayKey(), 120) });
+  assert.equal((await setStatus(second.booking, 'completed')).status, 200);
+  assert.equal(db.clients.length, 1);
+  assert.ok(db.bookings.every((x) => x.clientId === clientId));
+  assert.equal((await get(`/api/clients/${clientId}`)).json.data.summary.completedBookings, 1);
+});
+await test('[14] an EXISTING client (other email, a name the admin chose) is reused by a confirmed booking: nothing is overwritten', async () => {
+  seedClient({ name: "Priya Ma'am", nameSource: 'manual', normalizedPhone: PRIYA, phone: '+91 98765 43210', email: 'priya.old@example.com', source: 'manual' });
+  const { confirmed } = await bookAndConfirm({ email: 'priya.new@example.com', name: 'Priya Sharma' });
+  assert.equal(confirmed.json.clientLink, 'linked');
+  assert.equal(db.clients.length, 1);
+  const c = db.clients[0];
+  assert.equal(c.name, "Priya Ma'am");
+  assert.equal(c.email, 'priya.old@example.com');
+  assert.equal(db.bookings[0].clientId, c._id);
+});
+await test('[15] a booking confirmation fills in a missing email on an existing client, and takes over an unlinked conversation', async () => {
+  seedClient({ name: 'Priya', nameSource: 'placeholder', normalizedPhone: PRIYA, phone: '+91 98765 43210', email: '', source: 'whatsapp' });
+  seedConversation();
+  await bookAndConfirm();
+  const c = db.clients[0];
+  assert.equal(db.clients.length, 1);
+  assert.equal(c.email, 'priya@example.com');
+  assert.equal(c.name, 'Priya Sharma'); // a real name replaces the placeholder
+  assert.equal(db.conversations[0].clientId, c._id);
+});
+await test('[16] invalid or refused bookings create no client', async () => {
+  assert.equal((await book({ email: 'nope' })).status, 400);
+  assert.equal((await book({ name: '' })).status, 400);
+  const day = addDays(todayKey(), 60);
+  assert.equal((await book({ date: day, phone: '+91 91111 11111' })).status, 201);
+  assert.equal((await book({ date: day, phone: '+91 92222 22222', name: 'Second Person' })).status, 409);
+  faults.bookingSave = true;
+  assert.equal((await book()).status, 409);
+  assert.equal(db.clients.length, 0);
+});
+await test('[17] if creating the client fails, the booking STAYS confirmed, the admin is warned, nothing personal is logged, and saving the booking again repairs it', async () => {
+  let attempts = 0;
+  Client.create = async () => { attempts += 1; throw Object.assign(new Error('boom: priya@example.com 919876543210'), { name: 'MongoNetworkError' }); };
+  const r = await book();
+  const c = await confirm(r);
+  assert.equal(c.status, 200);
+  assert.equal(c.json.data.status, 'confirmed');
+  assert.equal(db.bookings[0].status, 'confirmed');
+  assert.equal(c.json.clientLink, 'error');
+  assert.match(c.json.warnings.clientLink, /client profile could not be created/i);
+  assert.equal(attempts, 3, 'one try and two retries');
+  assert.equal(db.clients.length, 0);
+  assert.equal(db.bookings[0].clientId, undefined);
+  const text = logs.filter((l) => l.startsWith('[clients]')).join('\n');
+  assert.ok(text.includes('could not be linked'));
+  assert.ok(!text.includes('priya@example.com') && !text.includes('919876543210') && !text.includes('Priya'), 'no personal data in logs');
+
+  Client.create = realClientCreate; // the database is back: saving the booking again makes the client
+  const fixed = await patch(`/api/bookings/${r.json.data.reference}`, { adminNotes: 'retry' });
+  assert.equal(fixed.status, 200);
+  assert.equal(fixed.json.clientLink, 'created');
+  assert.ok(!fixed.json.warnings);
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
+});
+await test('[18] a failure that clears by itself (one dropped call) is retried and succeeds without any warning', async () => {
+  let calls = 0;
+  Client.create = async (data) => { calls += 1; if (calls === 1) throw Object.assign(new Error('socket closed'), { name: 'MongoNetworkError' }); return realClientCreate(data); };
+  const { confirmed } = await bookAndConfirm();
+  assert.equal(confirmed.json.clientLink, 'created');
+  assert.ok(!confirmed.json.warnings);
   assert.equal(db.clients.length, 1);
 });
-await test('[6] a number that already has a client returns the EXISTING client and changes nothing (200, existing: true)', async () => {
-  const first = await post('/api/clients', { name: 'Priya Sharma', phone: '+91 98765 43210', email: 'priya@example.com', notes: 'first note' });
-  for (const phone of ['+91 98765 43210', '098765 43210', '9876543210', '919876543210', '0091-98765-43210']) {
-    const r = await post('/api/clients', { name: 'Somebody Else', phone, email: 'other@example.com', city: 'Delhi', notes: 'second note' });
-    assert.equal(r.status, 200, phone);
-    assert.equal(r.json.existing, true);
-    assert.equal(r.json.data.id, first.json.data.id);
-    assert.equal(r.json.data.name, 'Priya Sharma'); // nothing overwritten
-  }
+await test('[19] a phone number too short to place: the booking is confirmed, the admin is told, no client is guessed; fixing the number and saving links it', async () => {
+  const r = await book({ phone: '1234567' });
+  const c = await confirm(r);
+  assert.equal(c.status, 200);
+  assert.equal(c.json.clientLink, 'unmatched');
+  assert.match(c.json.warnings.clientLink, /country code/i);
+  assert.equal(db.clients.length, 0);
+  const fixed = await patch(`/api/bookings/${r.json.data.reference}`, { phone: '+91 98765 43210' });
+  assert.equal(fixed.json.clientLink, 'created');
   assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
+});
+await test('[20] the client created from a booking is complete and valid (no city, no notes needed) and shows in the list', async () => {
+  await bookAndConfirm();
+  const c = db.clients[0];
+  assert.equal((await get(`/api/clients/${c._id}`)).json.data.city, '');
+  const list = await get('/api/clients');
+  assert.equal(list.json.total, 1);
+  assert.equal(list.json.data[0].totalBookings, 1);
+});
+await test('[21] the profile lists ALL of a client\'s bookings, whatever their status', async () => {
+  const first = await bookAndConfirm({ date: addDays(todayKey(), 70) });
+  await bookAndConfirm({ date: addDays(todayKey(), 71), shootType: 'portrait' });
+  await setStatus(first.booking, 'cancelled');
+  const c = db.clients[0];
+  const r = await get(`/api/clients/${c._id}/bookings`);
+  assert.equal(r.json.data.length, 2);
+  assert.deepEqual(r.json.data.map((x) => x.status).sort(), ['cancelled', 'confirmed']);
+  assert.ok(r.json.data.every((x) => x.reference && x.date && x.time));
+  assert.equal((await get(`/api/clients/${c._id}/bookings?filter=cancelled`)).json.data.length, 1);
+  assert.equal((await get(`/api/clients/${c._id}`)).json.data.summary.totalBookings, 2);
+});
+
+// ======================================================================= 5  WhatsApp
+section('5  WhatsApp never creates a client; it attaches to one that exists');
+const wa = clientsService.linkWhatsAppSender;
+await test('[22] a WhatsApp message from an unknown number creates NO client and the conversation stays unlinked', async () => {
+  seedConversation();
+  const r = await wa({ phone: PRIYA, name: 'Priya Patil' });
+  assert.equal(r.outcome, 'no_client');
+  assert.equal(db.clients.length, 0);
+  assert.equal(db.conversations[0].clientId, undefined);
+  assert.deepEqual((await get('/api/clients/stats')).json.data, { total: 0, newThisMonth: 0, repeat: 0, totalBookings: 0 });
+});
+await test('[23] a WhatsApp message from an existing client attaches the conversation and changes nothing else (not even the name)', async () => {
+  const c = seedClient({ name: 'Priya Sharma', nameSource: 'booking', normalizedPhone: PRIYA, phone: '+91 98765 43210', email: 'priya@example.com', source: 'booking' });
+  seedConversation();
+  const r = await wa({ phone: PRIYA, name: 'priya 🌸' });
+  assert.equal(r.outcome, 'linked');
+  assert.equal(db.conversations[0].clientId, c._id);
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.clients[0].name, 'Priya Sharma');
   assert.equal(db.clients[0].email, 'priya@example.com');
-  assert.equal(db.clients[0].city, '');
-  assert.equal(db.notes.length, 1);
 });
-await test('[7] five simultaneous requests for the same new number create exactly ONE client', async () => {
-  const phones = ['+91 98765 43210', '098765 43210', '9876543210', '919876543210', '+91-98765-43210'];
-  const results = await Promise.all(phones.map((phone, i) => post('/api/clients', { name: `Priya ${i}x`, phone })));
+await test('[24] messaging before booking: still no client; when the booking is CONFIRMED there is one client with the conversation attached', async () => {
+  seedConversation();
+  await wa({ phone: PRIYA, name: 'Priya' });
+  assert.equal(db.clients.length, 0);
+  const r = await book();
+  assert.equal(db.clients.length, 0); // pending
+  await confirm(r);
   assert.equal(db.clients.length, 1);
-  assert.equal(results.filter((r) => r.status === 201).length, 1);
-  assert.equal(results.filter((r) => r.status === 200 && r.json.existing).length, 4);
-  assert.equal(new Set(results.map((r) => r.json.data.id)).size, 1);
+  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
+  assert.equal(db.conversations[0].clientId, db.clients[0]._id);
+});
+await test('[25] confirming first, then messaging: one client and the conversation gets linked', async () => {
+  await bookAndConfirm();
+  seedConversation();
+  const r = await wa({ phone: PRIYA, name: 'Priya' });
+  assert.equal(r.outcome, 'linked');
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.conversations[0].clientId, db.clients[0]._id);
+});
+await test('[26] repeated and simultaneous messages never create or duplicate anything', async () => {
+  seedConversation();
+  await Promise.all([1, 2, 3, 4, 5].map(() => wa({ phone: PRIYA, name: 'Priya' })));
+  assert.equal(db.clients.length, 0);
+  await bookAndConfirm();
+  await Promise.all([1, 2, 3, 4, 5].map(() => wa({ phone: PRIYA, name: 'Priya' })));
+  assert.equal(db.clients.length, 1);
+});
+await test('[27] a conversation that already belongs to another client is never taken over', async () => {
+  const other = seedClient({ name: 'Other', normalizedPhone: '919811122233' });
+  seedClient({ name: 'Priya', normalizedPhone: PRIYA });
+  seedConversation({ clientId: other._id });
+  await wa({ phone: PRIYA, name: 'Priya' });
+  assert.equal(db.conversations[0].clientId, other._id);
+});
+await test('[28] an unusable sender number links nothing and creates nothing', async () => {
+  for (const phone of ['', undefined, null, '12', 'abc']) assert.equal((await wa({ phone, name: 'X' })).outcome, 'unmatched');
+  assert.equal(db.clients.length, 0);
+});
+await test('[29] the safe wrappers never throw, retry a failing booking link, log no personal data, and skip when the database is not ready', async () => {
+  let tries = 0;
+  const boom = {
+    linkWhatsAppSender: async () => { throw Object.assign(new Error('failed for 919876543210 Priya'), { name: 'MongoServerError' }); },
+    linkBookingToClient: async () => { tries += 1; throw Object.assign(new Error('failed for priya@example.com'), { name: 'MongoNetworkError' }); },
+  };
+  const safe = clientsService.createSafeLinks(boom, { sleep: async () => {} });
+  assert.deepEqual(await safe.linkWhatsApp({ from: PRIYA, name: 'Priya' }), { outcome: 'error' });
+  assert.deepEqual(await safe.linkBooking({ phone: PRIYA, status: 'confirmed' }), { outcome: 'error' });
+  assert.equal(tries, 3);
+  assert.ok(!logs.join('\n').includes('919876543210') && !logs.join('\n').includes('Priya') && !logs.join('\n').includes('priya@example.com'));
+  const idle = clientsService.createSafeLinks(boom, { isReady: async () => false });
+  assert.deepEqual(await idle.linkWhatsApp({ from: PRIYA }), { outcome: 'skipped' });
+  assert.deepEqual(await idle.linkBooking({ phone: PRIYA }), { outcome: 'skipped' });
+  // the real exported wrappers are skipped while the database connection is down
+  connected = false;
+  try {
+    assert.deepEqual(await clientsService.safeLinkWhatsApp({ from: PRIYA, name: 'Priya' }), { outcome: 'skipped' });
+    assert.deepEqual(await clientsService.safeLinkBooking({ phone: PRIYA, status: 'confirmed' }), { outcome: 'skipped' });
+  } finally { connected = true; }
+  assert.equal(db.clients.length, 0);
+});
+await test('[30] linkBookingToClient itself refuses pending / cancelled bookings and leaves an already linked booking alone', async () => {
+  for (const status of ['pending', 'cancelled']) assert.equal((await clientsService.linkBookingToClient({ _id: 'x', status, phone: '+91 98765 43210', name: 'Priya Sharma' })).outcome, 'not_confirmed');
+  assert.equal((await clientsService.linkBookingToClient({ _id: 'x', status: 'confirmed', clientId: 'abc', phone: '+91 98765 43210', name: 'Priya Sharma' })).outcome, 'already_linked');
+  assert.equal(db.clients.length, 0);
 });
 
 // ======================================================================= 3  editing
@@ -373,187 +642,22 @@ await test('[11] bad edits: invalid email / phone / name, empty body, unknown fi
   assert.equal(c.source, 'manual');
 });
 
-// ======================================================================= 4  a customer submits a booking
-section('4  booking → client');
-await test('[12] first booking from a new customer creates the client and links the booking', async () => {
-  const r = await book();
-  assert.equal(r.status, 201);
+await test('[31] the service itself: five confirmations racing for one new number still end with ONE client (the unique index + duplicate recovery, no retry to hide behind)', async () => {
+  const rows = [0, 1, 2, 3, 4].map((i) => seedBooking(undefined, { status: 'confirmed', phone: ['+91 98765 43210', '098765 43210', '9876543210', '919876543210', '+91-98765-43210'][i], name: `Priya ${i}` }));
+  const results = await Promise.all(rows.map((r) => clientsService.linkBookingToClient({ _id: r._id, status: 'confirmed', phone: r.phone, name: r.name, email: '' })));
   assert.equal(db.clients.length, 1);
-  const c = db.clients[0];
-  assert.equal(c.normalizedPhone, PRIYA);
-  assert.equal(c.name, 'Priya Sharma');
-  assert.equal(c.nameSource, 'booking');
-  assert.equal(c.source, 'booking');
-  assert.equal(c.email, 'priya@example.com');
-  assert.equal(db.bookings[0].clientId, c._id);
-  assert.ok(!('clientId' in r.json.data), 'the public response must not carry the internal link');
-  assert.ok(!r.text.includes(c._id));
-  const detail = await get(`/api/clients/${c._id}`);
-  assert.equal(detail.json.data.summary.totalBookings, 1);
-  assert.equal(detail.json.data.summary.type, 'new');
-});
-await test('[13] a second booking by the same number (other format, other email) reuses the client', async () => {
-  await book();
-  const r = await book({ phone: '098765 43210', email: 'priya.work@example.com', name: 'Priya S' });
-  assert.equal(r.status, 201);
-  assert.equal(db.clients.length, 1);
-  const c = db.clients[0];
-  assert.equal(c.email, 'priya@example.com'); // the client keeps its own email
-  assert.equal(c.name, 'Priya Sharma'); // the first booking name stays
-  assert.equal(db.bookings.length, 2);
-  assert.ok(db.bookings.every((b) => b.clientId === c._id));
-  assert.equal(db.bookings[1].email, 'priya.work@example.com'); // the booking keeps what the customer typed
-  assert.equal((await get(`/api/clients/${c._id}`)).json.data.summary.type, 'repeat');
-});
-await test('[14] a booking never overwrites a name the admin typed, but fills a missing email and city-less client', async () => {
-  await post('/api/clients', { name: 'Priya Ma\'am', phone: '+91 98765 43210' });
-  await book();
-  const c = db.clients[0];
-  assert.equal(db.clients.length, 1);
-  assert.equal(c.name, 'Priya Ma\'am');
-  assert.equal(c.email, 'priya@example.com'); // was empty → filled
-  assert.equal(db.bookings[0].clientId, c._id);
-});
-await test('[15] a failed booking (slot taken) creates no client', async () => {
-  const day = addDays(todayKey(), 60);
-  assert.equal((await book({ date: day, phone: '+91 91111 11111' })).status, 201);
-  const before = db.clients.length;
-  const r = await book({ date: day, phone: '+91 92222 22222', name: 'Second Person' });
-  assert.equal(r.status, 409);
-  assert.equal(db.clients.length, before);
-  assert.ok(!clientByPhone('919222222222'));
-});
-await test('[16] a booking refused by the database at save time (a simultaneous double-booking) creates no client', async () => {
-  faults.bookingSave = true;
-  const r = await book();
-  assert.equal(r.status, 409);
-  assert.equal(db.clients.length, 0);
-  assert.equal(db.bookings.length, 0);
-});
-await test('[17] invalid booking input creates no client', async () => {
-  assert.equal((await book({ email: 'nope' })).status, 400);
-  assert.equal((await book({ name: '' })).status, 400);
-  assert.equal(db.clients.length, 0);
-});
-await test('[18] if the CRM step breaks, the booking is STILL saved and confirmed, nothing sensitive is logged, and the backfill can repair it', async () => {
-  Client.create = async () => { throw Object.assign(new Error('boom: priya@example.com 919876543210'), { name: 'MongoNetworkError' }); };
-  const r = await book();
-  assert.equal(r.status, 201);
-  assert.equal(db.bookings.length, 1);
-  assert.equal(db.bookings[0].clientId, undefined);
-  assert.equal(db.clients.length, 0);
-  const text = logs.filter((l) => l.startsWith('[clients]')).join('\n'); // our own log lines (the dev email printout is not ours)
-  assert.ok(text.includes('could not be linked'));
-  assert.ok(!text.includes('priya@example.com') && !text.includes('919876543210') && !text.includes('Priya'), 'no personal data in logs');
-});
-await test('[19] a booking whose phone is too short to place is saved but not linked (and no client is guessed)', async () => {
-  const r = await book({ phone: '1234567' });
-  assert.equal(r.status, 201);
-  assert.equal(db.bookings.length, 1);
-  assert.equal(db.clients.length, 0);
-});
-await test('[20] a customer with no email-matching history, no city, no notes: the client is complete and valid', async () => {
-  await book();
-  const c = db.clients[0];
-  assert.equal(c.city, '');
-  const r = await get(`/api/clients/${c._id}`);
-  assert.equal(r.json.data.city, '');
-});
-await test('[21] simultaneous first bookings by the same number create ONE client', async () => {
-  const results = await Promise.all([0, 1, 2, 3].map((i) => book({ phone: i % 2 ? '098765 43210' : '+91 98765 43210', name: `Priya ${i}`, date: addDays(todayKey(), 100 + i) })));
-  assert.ok(results.every((r) => r.status === 201));
-  assert.equal(db.clients.length, 1);
+  assert.equal(results.filter((x) => x.outcome === 'created').length, 1);
+  assert.equal(results.filter((x) => x.outcome === 'linked').length, 4);
   assert.ok(db.bookings.every((b) => b.clientId === db.clients[0]._id));
 });
-
-// ======================================================================= 5  WhatsApp
-section('5  WhatsApp → client');
-const wa = clientsService.linkWhatsAppSender;
-await test('[22] a first WhatsApp message creates a client named after the profile name and links the conversation', async () => {
-  seedConversation();
-  const r = await wa({ phone: PRIYA, name: 'Priya Patil' });
-  assert.equal(r.outcome, 'created');
-  const c = clientByPhone(PRIYA);
-  assert.equal(c.name, 'Priya Patil');
-  assert.equal(c.nameSource, 'whatsapp');
-  assert.equal(c.source, 'whatsapp');
-  assert.equal(db.conversations[0].clientId, c._id);
-});
-await test('[23] no WhatsApp name: the client is named after the phone number', async () => {
-  seedConversation();
-  await wa({ phone: PRIYA, name: '' });
-  assert.equal(clientByPhone(PRIYA).name, '+91 98765 43210');
-  assert.equal(clientByPhone(PRIYA).nameSource, 'placeholder');
-  await wa({ phone: '919811122233', name: undefined });
-  assert.equal(db.clients.length, 2);
-});
-await test('[24] a placeholder name is replaced when a real name arrives (WhatsApp, then booking)', async () => {
-  await wa({ phone: PRIYA, name: '' });
-  await wa({ phone: PRIYA, name: 'Priya P' });
-  assert.equal(clientByPhone(PRIYA).name, 'Priya P');
-  await book({ name: 'Priya Sharma' });
-  assert.equal(db.clients.length, 1);
-  assert.equal(clientByPhone(PRIYA).name, 'Priya Sharma'); // booking name outranks the WhatsApp profile name
-  assert.equal(clientByPhone(PRIYA).email, 'priya@example.com');
-  await wa({ phone: PRIYA, name: 'priya 🌸' });
-  assert.equal(clientByPhone(PRIYA).name, 'Priya Sharma'); // and a later WhatsApp name does not take it back
-});
-await test('[25] a phone-number fallback never overwrites any real name', async () => {
-  seedClient({ name: 'Typed By Admin', nameSource: 'manual', normalizedPhone: PRIYA });
-  await wa({ phone: PRIYA, name: '' });
-  await wa({ phone: PRIYA, name: 'WhatsApp Name' });
-  assert.equal(db.clients[0].name, 'Typed By Admin');
-  seedClient({ name: 'From Booking', nameSource: 'booking', normalizedPhone: '919811122233', phone: '+91 98111 22233' });
-  await wa({ phone: '919811122233', name: '' });
-  assert.equal(clientByPhone('919811122233').name, 'From Booking');
-});
-await test('[26] a customer who messages before booking, then books, is ONE client with both linked', async () => {
-  seedConversation();
-  await wa({ phone: PRIYA, name: 'Priya' });
-  await book();
-  assert.equal(db.clients.length, 1);
-  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
-  assert.equal(db.conversations[0].clientId, db.clients[0]._id);
-});
-await test('[27] a customer who books first, then messages, is ONE client and the conversation gets linked', async () => {
-  await book();
-  seedConversation();
-  const r = await wa({ phone: PRIYA, name: 'Priya' });
-  assert.equal(r.outcome, 'linked');
-  assert.equal(db.clients.length, 1);
-  assert.equal(db.conversations[0].clientId, db.clients[0]._id);
-});
-await test('[28] repeated and simultaneous messages from a new number create exactly ONE client', async () => {
-  seedConversation();
-  await Promise.all([1, 2, 3, 4, 5].map(() => wa({ phone: PRIYA, name: 'Priya' })));
-  await wa({ phone: PRIYA, name: 'Priya' });
-  assert.equal(db.clients.length, 1);
-});
-await test('[29] a conversation that already belongs to another client is never taken over', async () => {
-  const other = seedClient({ name: 'Other', normalizedPhone: '919811122233' });
-  seedConversation({ clientId: other._id });
-  await wa({ phone: PRIYA, name: 'Priya' });
-  assert.equal(db.conversations[0].clientId, other._id);
-});
-await test('[30] an unusable sender number links nothing and creates nothing', async () => {
-  for (const phone of ['', undefined, null, '12', 'abc']) assert.equal((await wa({ phone, name: 'X' })).outcome, 'unmatched');
-  assert.equal(db.clients.length, 0);
-});
-await test('[31] the webhook-facing wrappers never throw, log no personal data, and skip when told the database is not ready', async () => {
-  const boom = { linkWhatsAppSender: async () => { throw Object.assign(new Error('failed for 919876543210 Priya'), { name: 'MongoServerError' }); }, linkBookingToClient: async () => { throw new Error('x'); } };
-  const safe = clientsService.createSafeLinks(boom);
-  assert.deepEqual(await safe.linkWhatsApp({ from: PRIYA, name: 'Priya' }), { outcome: 'error' });
-  assert.deepEqual(await safe.linkBooking({ phone: PRIYA }), { outcome: 'error' });
-  assert.ok(!logs.join('\n').includes('919876543210') && !logs.join('\n').includes('Priya'));
-  const idle = clientsService.createSafeLinks(boom, { isReady: async () => false });
-  assert.deepEqual(await idle.linkWhatsApp({ from: PRIYA }), { outcome: 'skipped' });
-  // the real exported wrappers are skipped while the database connection is down
-  connected = false;
-  try {
-    assert.deepEqual(await clientsService.safeLinkWhatsApp({ from: PRIYA, name: 'Priya' }), { outcome: 'skipped' });
-    assert.deepEqual(await clientsService.safeLinkBooking({ phone: PRIYA }), { outcome: 'skipped' });
-  } finally { connected = true; }
-  assert.equal(db.clients.length, 0);
+await test('[32] a booking that already belongs to a client is never moved to another (the attach is guarded in the database)', async () => {
+  const mine = seedClient({ name: 'Original', normalizedPhone: '919811122233', phone: '+91 98111 22233' });
+  const row = seedBooking(mine._id, { status: 'confirmed', phone: '+91 98765 43210' });
+  // a stale copy of the booking (loaded before it was linked) reaches the service with no clientId
+  const r = await clientsService.linkBookingToClient({ _id: row._id, status: 'confirmed', phone: '+91 98765 43210', name: 'Priya Sharma', email: '' });
+  assert.equal(r.outcome, 'already_linked');
+  assert.equal(db.clients.length, 1, 'no extra client is created for a booking that already has one');
+  assert.equal(db.bookings.find((b) => b._id === row._id).clientId, mine._id);
 });
 
 // ======================================================================= 6  the WhatsApp summary on a profile
@@ -852,6 +956,7 @@ await test('[51] a note can only be reached through its own client', async () =>
 await test('[52] notes never leak: not in the client, list, bookings, WhatsApp, stats or the public booking response', async () => {
   const SECRET = 'SECRET-NOTE-TEXT-9917';
   const b = await book();
+  await confirm(b);
   const c = db.clients[0];
   await post(`/api/clients/${c._id}/notes`, { body: SECRET });
   seedConversation({ clientId: c._id });
@@ -902,6 +1007,80 @@ await test('[56] changing the phone of a client still named after the old number
   const r2 = await patch(`/api/clients/${b._id}`, { phone: '+91 90000 00002' });
   assert.equal(r2.status, 200);
   assert.equal(r2.json.data.name, 'Real Name');
+});
+
+
+// ======================================================================= 9  review follow-ups
+section('9  confirmedAt, clientLinked flag, phone mismatch, empty phone');
+await test('[57] confirming records confirmedAt once; it is never cleared and never moved by later saves', async () => {
+  const r = await book();
+  assert.equal(db.bookings[0].confirmedAt, undefined);
+  await confirm(r);
+  const first = db.bookings[0].confirmedAt;
+  assert.ok(first instanceof Date);
+  await setStatus(r, 'cancelled');
+  assert.equal(String(db.bookings[0].confirmedAt), String(first));
+  await patch(`/api/bookings/${r.json.data.reference}`, { adminNotes: 'x' });
+  assert.equal(String(db.bookings[0].confirmedAt), String(first));
+});
+await test('[58] confirmed, the client could not be created, then cancelled: saving the cancelled booking still links it (it WAS confirmed)', async () => {
+  Client.create = async () => { throw Object.assign(new Error('down'), { name: 'MongoNetworkError' }); };
+  const r = await book();
+  assert.equal((await confirm(r)).json.clientLink, 'error');
+  Client.create = realClientCreate;
+  const c = await setStatus(r, 'cancelled');
+  assert.equal(c.status, 200);
+  assert.equal(c.json.clientLink, 'created');
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, db.clients[0]._id);
+});
+await test('[59] a booking that was never confirmed and is cancelled still gets no client', async () => {
+  const r = await book();
+  await setStatus(r, 'cancelled');
+  assert.equal(db.clients.length, 0);
+  assert.equal(db.bookings[0].confirmedAt, undefined);
+});
+await test('[60] the admin response says whether the booking has a client (clientLinked) but never the client id', async () => {
+  const r = await book();
+  const c1 = await confirm(r);
+  assert.equal(c1.json.data.clientLinked, true);
+  assert.ok(!('clientId' in c1.json.data));
+  assert.ok(!c1.text.includes(db.clients[0]._id));
+  assert.equal(r.json.data.clientLinked, false); // pending booking just created: no client
+  Client.create = async () => { throw Object.assign(new Error('down'), { name: 'MongoNetworkError' }); };
+  const r2 = await book({ phone: '+91 98111 22233', date: addDays(todayKey(), 99) });
+  assert.equal((await confirm(r2)).json.data.clientLinked, false);
+});
+await test('[61] changing the phone of a linked booking to another person warns "mismatch" and does NOT move the booking or create a client', async () => {
+  const { booking } = await bookAndConfirm();
+  const before = db.bookings[0].clientId;
+  const r = await patch(`/api/bookings/${booking.json.data.reference}`, { phone: '+91 91111 22222' });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.clientLink, 'mismatch');
+  assert.match(r.json.warnings.clientLink, /no longer matches/i);
+  assert.equal(db.clients.length, 1);
+  assert.equal(db.bookings[0].clientId, before);
+  // same person, different formatting: no warning
+  const ok = await patch(`/api/bookings/${booking.json.data.reference}`, { phone: '98765 43210' });
+  assert.equal(ok.status, 200);
+  // (the number now differs from the one saved before, but still belongs to the linked client)
+  assert.equal(ok.json.clientLink, undefined);
+});
+await test('[62] a confirmed booking with an EMPTY phone gets its own wording (not "country code")', async () => {
+  const r = await book();
+  db.bookings[0].phone = '';
+  const c = await confirm(r);
+  assert.equal(c.json.clientLink, 'unmatched');
+  assert.match(c.json.warnings.clientLink, /no phone number/i);
+  assert.ok(!/country code/i.test(c.json.warnings.clientLink));
+});
+await test('[63] linking with a stale copy of an already-linked booking creates nothing', async () => {
+  const { booking } = await bookAndConfirm();
+  const stale = { ...db.bookings[0], clientId: undefined };
+  const out = await (await import('../utils/clients.js')).linkBookingToClient(stale);
+  assert.equal(out.outcome, 'already_linked');
+  assert.equal(db.clients.length, 1);
+  assert.ok(booking);
 });
 
 // ---------------------------------------------------------------------- done
