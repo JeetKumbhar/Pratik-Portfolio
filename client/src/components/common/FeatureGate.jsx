@@ -1,5 +1,5 @@
 import { useSite } from '../../hooks/useSettings';
-import Loader from './Loader';
+import PageLoader from './PageLoader';
 import NotFound from '../../pages/NotFound/NotFound';
 
 /**
@@ -9,7 +9,7 @@ import NotFound from '../../pages/NotFound/NotFound';
  */
 export default function FeatureGate({ feature, children }) {
   const { loaded, portfolioEnabled, contactEnabled } = useSite();
-  if (!loaded) return <div className="container" style={{ padding: '120px 0' }}><Loader label="Loading" /></div>;
+  if (!loaded) return <PageLoader />;
   const on = feature === 'portfolio' ? portfolioEnabled : feature === 'contact' ? contactEnabled : true;
   return on ? children : <NotFound />;
 }

@@ -10,7 +10,7 @@ import DateTimePicker from '../../components/booking/DateTimePicker';
 import BookingReview from '../../components/booking/BookingReview';
 import BookingSuccess from '../../components/booking/BookingSuccess';
 import BookingSummary from '../../components/booking/BookingSummary';
-import Loader from '../../components/common/Loader';
+import PageLoader from '../../components/common/PageLoader';
 import Button from '../../components/common/Button';
 import useSettings, { useSite } from '../../hooks/useSettings';
 import { STEPS } from '../../components/booking/bookingData';
@@ -118,7 +118,7 @@ function BookingClosed({ message, contactEnabled }) {
 export default function Booking() {
   const { settings, loaded } = useSettings();
   const { contactEnabled } = useSite();
-  if (!loaded) return <div className="container" style={{ padding: '120px 0' }}><Loader label="Loading" /></div>;
+  if (!loaded) return <PageLoader />;
   if (!settings.booking.enabled) return <BookingClosed message={settings.booking.disabledMessage} contactEnabled={contactEnabled} />;
   return (
     <BookingProvider>

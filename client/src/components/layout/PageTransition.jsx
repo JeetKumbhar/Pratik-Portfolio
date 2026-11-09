@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { gsap, ScrollTrigger, MEDIA } from '../../utils/motion';
+import { gsap, ScrollTrigger, MEDIA, resetScrollToTop } from '../../utils/motion';
 
 /**
  * Route change → desktop: a dark curtain with a thin gold edge wipes up to reveal the new page.
@@ -15,7 +15,7 @@ export default function PageTransition({ children }) {
   const previousPath = useRef(pathname);
 
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    resetScrollToTop(); // every page starts at the top
 
     // Same path (first load, StrictMode double-run, or only the ?query changed): do nothing
     if (previousPath.current === pathname) return undefined;

@@ -1,6 +1,6 @@
 
 import { useLayoutEffect } from 'react';
-import { gsap, ScrollTrigger, MEDIA } from '../utils/motion';
+import { gsap, ScrollTrigger, MEDIA, resetScrollToTop } from '../utils/motion';
 import { splitWords } from '../utils/splitText';
 
 const once = (trigger, start = 'top 88%') => ({ trigger, start, once: true });
@@ -31,7 +31,7 @@ export default function useScrollAnimations(rootRef) {
     if (!root) return undefined;
 
     // New page: make sure scroll-triggered items are measured from the top
-    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'instant' });
+    if (window.scrollY > 0) resetScrollToTop();
 
     const mm = gsap.matchMedia();
 

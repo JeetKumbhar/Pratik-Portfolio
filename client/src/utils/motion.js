@@ -16,4 +16,16 @@ export const MEDIA = {
   mobile: '(max-width: 899px) and (prefers-reduced-motion: no-preference)',
 };
 
+/**
+ * Jump to the top of the page (no animation) AND tell ScrollTrigger the page is at the top.
+ * ScrollTrigger keeps its own cached copy of the scroll position, and that copy is not updated until the browser fires its "scroll"
+ * event a moment later. If a ScrollTrigger.refresh() runs in the meantime it records the stale value and, as its last step, scrolls
+ * back to it (clamped to the new page's height): Portfolio / Contact / Booking opened 500-700px down after leaving a scrolled-down Home.
+ * Writing 0 into the cached value as well removes the stale copy. Use this for every "new page" reset.
+ */
+export function resetScrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  ScrollTrigger.getScrollFunc(window)(0);
+}
+
 export { gsap, ScrollTrigger };

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminHeader from '../components/admin/AdminHeader';
 import useAuth from '../hooks/useAuth';
 import useUnreadMessages from '../hooks/useUnreadMessages';
+import { resetScrollToTop } from '../utils/motion';
 
 /**
  * AdminLayout
@@ -21,6 +22,9 @@ export default function AdminLayout() {
 
   // Close the mobile drawer whenever the page changes
   useEffect(() => { closeSidebar(); }, [pathname, closeSidebar]);
+
+  // Every admin page opens at the top (only the path counts, so changing a filter / ?query on the same page does not jump)
+  useLayoutEffect(() => { resetScrollToTop(); }, [pathname]);
 
   return (
     <div className="admin">
