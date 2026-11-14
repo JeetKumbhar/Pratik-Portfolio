@@ -21,6 +21,7 @@
     "test:bookings": "node scripts/testBookingManagement.js",
     "test:blocks": "node scripts/testBlockedDates.js",
     "test:portfolio": "node scripts/testPortfolioApi.js",
+    "test:r2": "node scripts/testR2Storage.js",
     "test:packages": "node scripts/testPackageApi.js",
     "test:messages": "node scripts/testMessagesApi.js",
     "whatsapp:templates": "node scripts/whatsappTemplates.js",
@@ -42,6 +43,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws4fetch": "^1.0.20",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",

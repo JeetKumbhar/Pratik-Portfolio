@@ -12,7 +12,11 @@ const isImageRef = (v) => /^(https?:\/\/\S+|\/(?!\/)\S*)$/i.test(v);
  *         (+ alt, ratio, featured, isPublished, sortOrder for the website and the Admin panel).
  *
  * - `image.url`      what the website displays. A local path works today; a Cloudinary URL after uploads exist.
- * - `image.publicId` the storage id the admin API needs to DELETE the file later. Never sent to the public.
+ * - `image.publicId` the storage id the admin API needs to DELETE a CLOUDINARY file later. Never sent to the public.
+ * - `image.provider`/`key`/`bytes`/`contentType` describe a photo stored in Cloudflare R2 (set only by the upload finalize
+ *   step, never from the browser): `key` is the object's name in the bucket and the stable handle for deleting it, whatever
+ *   address the site later serves it from. A record WITHOUT `provider` is older: a Cloudinary photo (has publicId), a pasted URL
+ *   or a /path. Those keep working unchanged. `key` is unique, so one stored file can never have two records.
  * - `image.width/height` (set on upload) are used to compute `ratio`, which the masonry grid needs to
  *   reserve space before the photo loads. Without them, set `ratio` by hand (default 1 = square).
  *
@@ -29,6 +33,10 @@ const portfolioSchema = new mongoose.Schema(
         validate: { validator: isImageRef, message: 'Image must be an http(s) URL or a /path' },
       },
       publicId: { type: String, trim: true },
+      provider: { type: String, enum: { values: ['cloudinary', 'r2'], message: 'Invalid storage provider' } }, // absent on older records
+      key: { type: String, trim: true }, // R2 object key; never stored as an empty string (see the unique index below)
+      bytes: { type: Number, min: 1 }, // size of the stored original
+      contentType: { type: String, trim: true },
       width: { type: Number, min: 1 },
       height: { type: Number, min: 1 },
     },
@@ -53,7 +61,7 @@ const portfolioSchema = new mongoose.Schema(
       transform(doc, ret) {
         ret.id = String(ret._id);
         ret.src = ret.image?.url; // what the frontend reads
-        if (ret.image) delete ret.image.publicId;
+        if (ret.image) { delete ret.image.publicId; delete ret.image.key; }
         delete ret.__v;
         return ret;
       },
@@ -74,5 +82,8 @@ portfolioSchema.pre('validate', function prepare() {
 
 // Public gallery query: published, by category, in order
 portfolioSchema.index({ isPublished: 1, category: 1, sortOrder: 1, createdAt: -1 });
+
+// One stored file = one record. Only records that HAVE a key are covered, so Cloudinary / pasted-URL / local-path photos are not affected.
+portfolioSchema.index({ 'image.key': 1 }, { unique: true, partialFilterExpression: { 'image.key': { $type: 'string' } } });
 
 export default mongoose.model('Portfolio', portfolioSchema);
